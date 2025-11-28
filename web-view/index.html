@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fresh Girl - Title Gallery</title>
+    <link rel="stylesheet" href="gallery-styles.css">
+    <!-- Firebase SDK v8 (for compatibility with static HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        .title-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .title-card {
+            background: #2a2a2a;
+            border: 1px solid #555;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+            color: #ffffff;
+        }
+
+        .title-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            text-decoration: none;
+            color: #ffffff;
+        }
+
+        .title-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+            font-size: 18px;
+        }
+
+        .title-card p {
+            margin: 0;
+            color: #cccccc;
+            font-size: 14px;
+        }
+
+        .loading-text {
+            text-align: center;
+            padding: 40px;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div style="width: 100%; min-height: 100vh; background-color: #121212; padding: 20px 0;">
+        <h1 style="text-align: center; color: #ffffff; margin: 20px 0;">Fresh Girl - Title Gallery</h1>
+        <p style="text-align: center; color: #cccccc; margin-bottom: 30px;">Click on any title to view all images in full size</p>
+
+        <!-- Notification system -->
+        <div id="notification" class="notification" style="display: none;">
+            <span id="notificationMessage"></span>
+            <span class="notification-close" onclick="hideNotification()">&times;</span>
+        </div>
+
+        <div id="titlesContainer" class="title-grid">
+            <p class="loading-text">Loading titles...</p>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration - Replace with your actual Firebase project values
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVVRM2NJGXn_5XhzozETuYFAgmWvpW6ec",
+            authDomain: "fresh-girl.firebaseapp.com",
+            projectId: "fresh-girl",
+            storageBucket: "fresh-girl.firebasestorage.app",
+            messagingSenderId: "907721279776",
+            appId: "1:907721279776:web:df4fe87ecd7d9b8d82af45"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Notification elements
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+
+        // Function to load and display titles
+        async function loadTitles() {
+            const titlesContainer = document.getElementById('titlesContainer');
+
+            try {
+                const titlesSnapshot = await db.collection('titles').orderBy('createdAt', 'desc').get();
+                titlesContainer.innerHTML = '';
+
+                if (titlesSnapshot.empty) {
+                    titlesContainer.innerHTML = '<p class="loading-text">No titles found.</p>';
+                    return;
+                }
+
+                for (const titleDoc of titlesSnapshot.docs) {
+                    const titleData = titleDoc.data();
+                    const titleName = titleData.name;
+
+                    // Get image count for this title
+                    const imageTitlesSnapshot = await db.collection('image_titles')
+                        .where('titleId', '==', titleDoc.id)
+                        .get();
+
+                    const imageCount = imageTitlesSnapshot.size;
+
+                    // Get thumbnail for this title
+                    let thumbnailUrl = null;
+                    try {
+                        const thumbnailSnapshot = await db.collection('title_thumbnails')
+                            .where('titleId', '==', titleDoc.id)
+                            .get();
+
+                        if (!thumbnailSnapshot.empty) {
+                            const thumbnailData = thumbnailSnapshot.docs[0].data();
+                            const thumbnailImageDoc = await db.collection('images').doc(thumbnailData.imageId).get();
+                            if (thumbnailImageDoc.exists) {
+                                thumbnailUrl = thumbnailImageDoc.data().url;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn('Error loading thumbnail for title:', titleName, error);
+                    }
+
+                    // Create title card
+                    const titleCard = document.createElement('a');
+                    titleCard.href = `view.html?title=${encodeURIComponent(titleName)}`;
+                    titleCard.className = 'title-card';
+
+                    // Add thumbnail image if available
+                    if (thumbnailUrl) {
+                        const thumbnailImg = document.createElement('img');
+                        thumbnailImg.src = thumbnailUrl;
+                        thumbnailImg.alt = `${titleName} thumbnail`;
+                        titleCard.appendChild(thumbnailImg);
+                    }
+
+                    const titleElement = document.createElement('h3');
+                    titleElement.textContent = titleName;
+
+                    const countElement = document.createElement('p');
+                    countElement.textContent = `${imageCount} image${imageCount !== 1 ? 's' : ''}`;
+
+                    titleCard.appendChild(titleElement);
+                    titleCard.appendChild(countElement);
+                    titlesContainer.appendChild(titleCard);
+                }
+
+            } catch (error) {
+                console.error('Error loading titles:', error);
+                titlesContainer.innerHTML = '<p class="loading-text">Error loading titles.</p>';
+                showNotification('Error loading titles.', 'error');
+            }
+        }
+
+        // Notification functions
+        function showNotification(message, type = 'success') {
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'flex';
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 3000);
+        }
+
+        function hideNotification() {
+            notification.style.display = 'none';
+        }
+
+        // Load titles on page load
+        window.addEventListener('load', loadTitles);
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Git operations
+git add .
+git commit --allow-empty-message -m "Deploy update"
+git push
+
+# Deploy main site
+npx surge . fresh-girl-3639-admin.surge.sh --overwrite
+
+# Deploy test results viewer
+cd web-view; npx surge . fresh-girl-gallery.surge.sh --overwrite

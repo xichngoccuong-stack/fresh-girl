@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FG Management Page</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK v8 (for compatibility with static HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <!-- Cloudinary Upload Widget -->
+    <script src="https://upload-widget.cloudinary.com/global/all.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>FG Management Page</h1>
+
+        <!-- Notification system -->
+        <div id="notification" class="notification" style="display: none;">
+            <span id="notificationMessage"></span>
+            <span class="notification-close" onclick="hideNotification()">&times;</span>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+            <div class="big-spinner"></div>
+        </div>
+        <div class="upload-section">
+            <input type="file" id="imageInput" accept="image/*" multiple>
+            <div id="imagePreview" class="image-preview"></div>
+            <select id="titleSelect" style="margin: 10px 0;">
+                <option value="">Select title for upload</option>
+            </select>
+            <button id="createTitleBtn" style="margin: 10px 0;">Create New Title</button>
+            <button id="uploadBtn" style="display: none;">Upload Images</button>
+            <div id="uploadSpinner" class="spinner" style="display: none;"></div>
+        </div>
+        <div class="images-section">
+            <h2>Uploaded Images</h2>
+            <div class="search-section">
+                <button id="openManageModalBtn">Manage Titles</button>
+                <select id="searchSelect">
+                    <option value="">Select title</option>
+                </select>
+                <button id="showAllBtn">Show All Images</button>
+            </div>
+            <div id="imagesContainer"></div>
+        </div>
+    </div>
+
+    <!-- Modal for full image view -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImg">
+    </div>
+
+    <!-- Modal for title management -->
+    <div id="manageModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeManageModal">&times;</span>
+            <h3>Title Management</h3>
+            <div style="margin-bottom: 15px;">
+                <select id="oldTitleSelect">
+                    <option value="">Select old title</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <textarea id="newTitleInput" placeholder="New title"></textarea>
+            </div>
+            <button id="updateTitleBtn">Update title</button>
+        </div>
+    </div>
+
+    <!-- Modal for thumbnail selection -->
+    <div id="thumbnailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="closeThumbnailModal">&times;</span>
+            <h3>Set Title Thumbnail</h3>
+            <p id="thumbnailTitleText">Select an image for title: <strong></strong></p>
+            <div id="thumbnailImagesContainer" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
+            <div style="text-align: center;">
+                <button id="saveThumbnailBtn">Set as Thumbnail</button>
+                <button id="removeThumbnailBtn" style="background-color: #dc3545; margin-left: 10px;">Remove Thumbnail</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

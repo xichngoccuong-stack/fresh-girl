@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fresh Girl - Image Gallery</title>
+    <link rel="stylesheet" href="view-styles.css">
+    <!-- Firebase SDK v8 (for compatibility with static HTML) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+        <div class="gallery-container">
+            <a href="index.html" class="back-link">← Back to Titles</a>
+
+            <div class="gallery-header">
+                <h1 id="titleHeading">Loading...</h1>
+                <p id="imageCount" style="color: #cccccc; margin: 0;"></p>
+            </div>
+
+            <!-- Notification system -->
+            <div id="notification" class="notification" style="display: none;">
+                <span id="notificationMessage"></span>
+                <span class="notification-close" onclick="hideNotification()">&times;</span>
+            </div>
+
+            <div id="imagesContainer" class="image-grid">
+                <p class="loading-text">Loading images...</p>
+            </div>
+        </div>
+
+    <script>
+        // Firebase configuration - Replace with your actual Firebase project values
+        const firebaseConfig = {
+            apiKey: "AIzaSyDVVRM2NJGXn_5XhzozETuYFAgmWvpW6ec",
+            authDomain: "fresh-girl.firebaseapp.com",
+            projectId: "fresh-girl",
+            storageBucket: "fresh-girl.firebasestorage.app",
+            messagingSenderId: "907721279776",
+            appId: "1:907721279776:web:df4fe87ecd7d9b8d82af45"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Notification elements
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notificationMessage');
+
+        // Get title from URL parameters
+        function getTitleFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('title');
+        }
+
+        // Function to load and display images for a specific title
+        async function loadImagesForTitle(titleName) {
+            const imagesContainer = document.getElementById('imagesContainer');
+            const titleHeading = document.getElementById('titleHeading');
+            const imageCount = document.getElementById('imageCount');
+
+            titleHeading.textContent = titleName;
+
+            try {
+                // Get title document
+                const titleSnapshot = await db.collection('titles').where('name', '==', titleName).get();
+
+                if (titleSnapshot.empty) {
+                    imagesContainer.innerHTML = '<p class="no-images">Title not found.</p>';
+                    titleHeading.textContent = 'Title Not Found';
+                    return;
+                }
+
+                const titleDoc = titleSnapshot.docs[0];
+
+                // Get images for this title
+                const imageTitlesSnapshot = await db.collection('image_titles')
+                    .where('titleId', '==', titleDoc.id)
+                    .get();
+
+                if (imageTitlesSnapshot.empty) {
+                    imagesContainer.innerHTML = '<p class="no-images">No images found for this title.</p>';
+                    imageCount.textContent = '0 images';
+                    return;
+                }
+
+                imageCount.textContent = `${imageTitlesSnapshot.size} image${imageTitlesSnapshot.size !== 1 ? 's' : ''}`;
+                imagesContainer.innerHTML = '';
+
+                // Display each image
+                for (const imageTitleDoc of imageTitlesSnapshot.docs) {
+                    const imageTitleData = imageTitleDoc.data();
+                    const imageDoc = await db.collection('images').doc(imageTitleData.imageId).get();
+
+                    if (imageDoc.exists) {
+                        const imgData = imageDoc.data();
+
+                        const imageCard = document.createElement('div');
+                        imageCard.className = 'image-card';
+
+                        const img = document.createElement('img');
+                        img.src = imgData.url;
+                        img.alt = imgData.name;
+                        img.loading = 'lazy'; // Lazy loading for better performance
+
+                        imageCard.appendChild(img);
+                        imagesContainer.appendChild(imageCard);
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error loading images:', error);
+                imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
+                showNotification('Error loading images.', 'error');
+            }
+        }
+
+        // Notification functions
+        function showNotification(message, type = 'success') {
+            notificationMessage.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'flex';
+
+            // Auto-hide after 3 seconds
+            setTimeout(() => {
+                hideNotification();
+            }, 3000);
+        }
+
+        function hideNotification() {
+            notification.style.display = 'none';
+        }
+
+        // Load images on page load
+        window.addEventListener('load', () => {
+            const title = getTitleFromURL();
+            if (title) {
+                loadImagesForTitle(title);
+            } else {
+                document.getElementById('titleHeading').textContent = 'No Title Specified';
+                document.getElementById('imagesContainer').innerHTML = '<p class="no-images">Please go back and select a title.</p>';
+            }
+        });
+    </script>
+</body>
+</html>
