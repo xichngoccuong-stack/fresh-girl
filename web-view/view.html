@@ -9,14 +9,46 @@
     <!-- Firebase SDK v8 (for compatibility with static HTML) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(1deg); }
+            50% { transform: translateY(-20px) rotate(0deg); }
+            75% { transform: translateY(-10px) rotate(-1deg); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
-        <div class="gallery-container">
-            <a href="index.html" class="back-link">← Back to Titles</a>
+        <div style="width: 100%; min-height: 100vh; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); position: relative; overflow: hidden;">
+            <!-- Decorative background elements -->
+            <div style="position: absolute; top: 15%; left: 5%; width: 180px; height: 180px; background: radial-gradient(circle, rgba(255,105,180,0.08) 0%, transparent 70%); border-radius: 50%; animation: float 6s ease-in-out infinite;"></div>
+            <div style="position: absolute; top: 70%; right: 10%; width: 120px; height: 120px; background: radial-gradient(circle, rgba(255,20,147,0.06) 0%, transparent 70%); border-radius: 50%; animation: float 8s ease-in-out infinite reverse;"></div>
+            <div style="position: absolute; bottom: 10%; left: 15%; width: 90px; height: 90px; background: radial-gradient(circle, rgba(220,20,60,0.05) 0%, transparent 70%); border-radius: 50%; animation: float 7s ease-in-out infinite;"></div>
 
-            <div class="gallery-header">
-                <h1 id="titleHeading">Loading...</h1>
-                <p id="imageCount" style="color: #cccccc; margin: 0;"></p>
+            <div class="gallery-container">
+            <a href="index.html" class="back-link" style="display: inline-block; color: #ff69b4; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px; transition: all 0.3s ease; position: relative; z-index: 1;">← Back to Titles</a>
+
+            <div class="gallery-header" style="position: relative; padding: 20px; margin-bottom: 20px;">
+                <!-- Decorative border -->
+                <div style="position: absolute; top: -5px; left: -5px; right: -5px; bottom: -5px; border: 2px solid transparent; border-radius: 15px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask-composite: exclude; opacity: 0.2; z-index: -1;"></div>
+
+                <h1 id="titleHeading" style="color: #ffffff; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.2em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite; margin: 0 0 10px 0; position: relative; z-index: 1;">Loading...</h1>
+                <p id="imageCount" style="color: #cccccc; margin: 0; font-size: 1.1em; position: relative; z-index: 1;">Loading...</p>
+
+                <!-- Sparkle effects -->
+                <div style="position: absolute; top: 10px; right: 20px; width: 6px; height: 6px; background: #ff69b4; border-radius: 50%; animation: sparkle 2s ease-in-out infinite;"></div>
+                <div style="position: absolute; bottom: 10px; left: 20px; width: 4px; height: 4px; background: #ff1493; border-radius: 50%; animation: sparkle 2.5s ease-in-out infinite;"></div>
             </div>
 
             <!-- Notification system -->
@@ -28,6 +60,7 @@
             <div id="imagesContainer" class="image-grid">
                 <p class="loading-text">Loading images...</p>
             </div>
+        </div>
         </div>
 
     <script>

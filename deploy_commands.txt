@@ -7,4 +7,4 @@ git push
 npx surge . fresh-girl-3639-admin.surge.sh --overwrite
 
 # Deploy test results viewer
-cd web-view; npx surge . fresh-girl-gallery.surge.sh --overwrite
+cd web-view; npx surge . fresh-girl-vn.surge.sh --overwrite; cd ..

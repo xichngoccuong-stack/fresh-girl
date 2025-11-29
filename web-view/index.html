@@ -66,15 +66,42 @@
             from { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(255,105,180,0.5); }
             to { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 20px rgba(255,20,147,0.8), 0 0 30px rgba(255,20,147,0.6); }
         }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-10px) rotate(1deg); }
+            50% { transform: translateY(-20px) rotate(0deg); }
+            75% { transform: translateY(-10px) rotate(-1deg); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
-    <div style="width: 100%; min-height: 100vh; background-color: #121212; padding: 20px 0;">
-        <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0;">
-            <img src="logo.jpg" alt="Gái xinh Việt Nam Logo" style="max-width: 80px; height: auto; margin-right: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
-            <h1 style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate;">Gái xinh Việt Nam</h1>
+    <div style="width: 100%; min-height: 100vh; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); position: relative; overflow: hidden; padding: 20px 0;">
+        <!-- Decorative background elements -->
+        <div style="position: absolute; top: 10%; left: 10%; width: 200px; height: 200px; background: radial-gradient(circle, rgba(255,105,180,0.1) 0%, transparent 70%); border-radius: 50%; animation: float 6s ease-in-out infinite;"></div>
+        <div style="position: absolute; top: 60%; right: 15%; width: 150px; height: 150px; background: radial-gradient(circle, rgba(255,20,147,0.08) 0%, transparent 70%); border-radius: 50%; animation: float 8s ease-in-out infinite reverse;"></div>
+        <div style="position: absolute; bottom: 20%; left: 20%; width: 100px; height: 100px; background: radial-gradient(circle, rgba(220,20,60,0.06) 0%, transparent 70%); border-radius: 50%; animation: float 7s ease-in-out infinite;"></div>
+        <div style="display: flex; align-items: center; justify-content: center; margin: 20px 0; position: relative;">
+            <!-- Decorative border -->
+            <div style="position: absolute; top: -10px; left: -10px; right: -10px; bottom: -10px; border: 2px solid transparent; border-radius: 15px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0); mask-composite: exclude; opacity: 0.3;"></div>
+
+            <img src="logo.jpg" alt="Gái xinh Việt Nam Logo" style="max-width: 80px; height: auto; margin-right: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
+            <h1 style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate; position: relative; z-index: 2;">Gái xinh Việt Nam</h1>
+
+            <!-- Sparkle effects -->
+            <div style="position: absolute; top: -5px; right: -5px; width: 8px; height: 8px; background: #ff69b4; border-radius: 50%; animation: sparkle 2s ease-in-out infinite;"></div>
+            <div style="position: absolute; bottom: -5px; left: -5px; width: 6px; height: 6px; background: #ff1493; border-radius: 50%; animation: sparkle 2.5s ease-in-out infinite;"></div>
+            <div style="position: absolute; top: 50%; right: -10px; width: 4px; height: 4px; background: #dc143c; border-radius: 50%; animation: sparkle 3s ease-in-out infinite;"></div>
         </div>
-        <p style="text-align: center; color: #cccccc; margin-bottom: 30px;">Click vào bất kỳ album nào để xem tất cả hình ảnh</p>
+        <div style="text-align: center; margin-bottom: 30px; position: relative;">
+            <p style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">✨ Click vào bất kỳ album nào để xem tất cả hình ảnh ✨</p>
+            <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+        </div>
 
         <!-- Notification system -->
         <div id="notification" class="notification" style="display: none;">
