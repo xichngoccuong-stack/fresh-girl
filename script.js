@@ -42,11 +42,11 @@ async function uploadImage() {
     const files = accumulatedFiles;
     const selectedTitle = titleSelect.value;
     if (files.length === 0) {
-        showNotification('Please select at least one image.', 'error');
+        showNotification('Please select at least one image or video.', 'error');
         return;
     }
     if (!selectedTitle) {
-        showNotification('Please select a title for the images.', 'error');
+        showNotification('Please select a title for the images/videos.', 'error');
         return;
     }
     loadingOverlay.style.display = 'flex';
@@ -57,23 +57,29 @@ async function uploadImage() {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('upload_preset', uploadPreset);
-            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+
+            // Determine upload endpoint based on file type
+            const isVideo = file.type.startsWith('video/');
+            const uploadEndpoint = isVideo ? 'video/upload' : 'image/upload';
+
+            const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${uploadEndpoint}`, {
                 method: 'POST',
                 body: formData
             });
             const data = await response.json();
             if (response.ok && data.secure_url) {
-                const imageRef = await db.collection('images').add({
+                const fileRef = await db.collection('images').add({
                     url: data.secure_url,
                     publicId: data.public_id,
                     name: file.name,
+                    type: isVideo ? 'video' : 'image',
                     uploadedAt: new Date()
                 });
                 const titleSnapshot = await db.collection('titles').where('name', '==', selectedTitle).get();
                 if (!titleSnapshot.empty) {
                     const titleDoc = titleSnapshot.docs[0];
                     await db.collection('image_titles').add({
-                        imageId: imageRef.id,
+                        imageId: fileRef.id,
                         titleId: titleDoc.id,
                         createdAt: new Date()
                     });
@@ -84,7 +90,7 @@ async function uploadImage() {
                 return { success: false, name: file.name, error: data };
             }
         } catch (error) {
-            console.error('Error uploading image', file.name, ':', error);
+            console.error('Error uploading file', file.name, ':', error);
             return { success: false, name: file.name, error };
         }
     });
@@ -95,13 +101,13 @@ async function uploadImage() {
     populateTitles();
     clearAllFiles(true);
     if (successCount > 0) {
-        showNotification(`${successCount} image(s) uploaded successfully!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`, 'success');
+        showNotification(`${successCount} image(s)/video(s) uploaded successfully!${errorCount > 0 ? ` ${errorCount} failed.` : ''}`, 'success');
     } else {
         showNotification('All uploads failed. Check console for details.', 'error');
     }
     loadingOverlay.style.display = 'none';
     uploadBtn.disabled = false;
-    uploadBtn.textContent = 'Upload Images';
+    uploadBtn.textContent = 'Upload Files';
 }
 
 
@@ -203,11 +209,25 @@ async function displayImagesForPage(page) {
         imgWrapper.className = 'image-item';
         imgWrapper.setAttribute('data-image-id', imageDoc.id);
 
-        const img = document.createElement('img');
-        img.src = imgData.url;
-        img.alt = imgData.name;
-        img.style.cursor = 'pointer';
-        img.onclick = () => toggleImageSelection(imageDoc.id);
+        const isVideo = imgData.type === 'video';
+        let mediaElement;
+
+        if (isVideo) {
+            mediaElement = document.createElement('video');
+            mediaElement.src = imgData.url;
+            mediaElement.controls = true;
+            mediaElement.style.width = '100%';
+            mediaElement.style.height = 'auto';
+            mediaElement.style.borderRadius = '4px';
+            mediaElement.style.cursor = 'pointer';
+            mediaElement.onclick = () => toggleImageSelection(imageDoc.id);
+        } else {
+            mediaElement = document.createElement('img');
+            mediaElement.src = imgData.url;
+            mediaElement.alt = imgData.name;
+            mediaElement.style.cursor = 'pointer';
+            mediaElement.onclick = () => toggleImageSelection(imageDoc.id);
+        }
 
         let setThumbnailBtn = null;
         if (titleId) {
@@ -219,7 +239,7 @@ async function displayImagesForPage(page) {
             setThumbnailBtn.onclick = () => setThumbnailDirectly(imageDoc.id, titleId);
         }
 
-        imgWrapper.appendChild(img);
+        imgWrapper.appendChild(mediaElement);
         if (setThumbnailBtn) {
             imgWrapper.appendChild(setThumbnailBtn);
         }
@@ -289,8 +309,20 @@ function displayPreviews(files) {
             const previewItem = document.createElement('div');
             previewItem.className = 'preview-item';
 
-            const img = document.createElement('img');
-            img.src = e.target.result;
+            const isVideo = file.type.startsWith('video/');
+            let mediaElement;
+
+            if (isVideo) {
+                mediaElement = document.createElement('video');
+                mediaElement.src = e.target.result;
+                mediaElement.controls = true;
+                mediaElement.style.maxWidth = '100%';
+                mediaElement.style.height = 'auto';
+                mediaElement.style.borderRadius = '4px';
+            } else {
+                mediaElement = document.createElement('img');
+                mediaElement.src = e.target.result;
+            }
 
             const name = document.createElement('p');
             name.textContent = file.name;
@@ -298,10 +330,10 @@ function displayPreviews(files) {
             const removeBtn = document.createElement('button');
             removeBtn.textContent = '×';
             removeBtn.className = 'remove-preview-btn';
-            removeBtn.title = 'Remove this image';
+            removeBtn.title = 'Remove this file';
             removeBtn.onclick = () => removePreviewItem(index);
 
-            previewItem.appendChild(img);
+            previewItem.appendChild(mediaElement);
             previewItem.appendChild(name);
             previewItem.appendChild(removeBtn);
             imagePreview.appendChild(previewItem);
@@ -354,7 +386,7 @@ clearAllBtn.addEventListener('click', clearAllFiles);
 bulkDeleteBtn.addEventListener('click', bulkDeleteSelectedImages);
 
 async function deleteImage(docId, publicId, titleId) {
-    if (!confirm('Are you sure you want to delete this image?')) return;
+    if (!confirm('Are you sure you want to delete this file?')) return;
 
     loadingOverlay.style.display = 'flex';
 
@@ -370,8 +402,13 @@ async function deleteImage(docId, publicId, titleId) {
     formData.append('timestamp', timestamp);
     formData.append('signature', signature);
 
+    // Get file type from database to determine destroy endpoint
+    const imageDoc = await db.collection('images').doc(docId).get();
+    const isVideo = imageDoc.exists && imageDoc.data().type === 'video';
+    const destroyEndpoint = isVideo ? 'video/destroy' : 'image/destroy';
+
     try {
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${destroyEndpoint}`, {
             method: 'POST',
             body: formData
         });
@@ -392,7 +429,7 @@ async function deleteImage(docId, publicId, titleId) {
             });
             await Promise.all(deletePromises);
 
-            showNotification('Image deleted successfully!', 'success');
+            showNotification('File deleted successfully!', 'success');
 
             const currentFilter = searchSelect.value;
             if (currentFilter) {
@@ -413,13 +450,13 @@ async function deleteImage(docId, publicId, titleId) {
                 imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
             }
         } else {
-            showNotification('Error deleting image: ' + (data.error ? data.error.message : 'Unknown error'), 'error');
+            showNotification('Error deleting file: ' + (data.error ? data.error.message : 'Unknown error'), 'error');
         }
 
         loadingOverlay.style.display = 'none';
     } catch (error) {
-        console.error('Error deleting image:', error);
-        showNotification('Error deleting image.', 'error');
+        console.error('Error deleting file:', error);
+        showNotification('Error deleting file.', 'error');
         loadingOverlay.style.display = 'none';
     }
 }
@@ -659,19 +696,19 @@ async function setThumbnailDirectly(imageId, titleId) {
 function toggleImageSelection(imageId) {
     const index = selectedImages.indexOf(imageId);
     const imgWrapper = document.querySelector(`[data-image-id="${imageId}"]`);
-    const imgElement = imgWrapper ? imgWrapper.querySelector('img') : null;
+    const mediaElement = imgWrapper ? imgWrapper.querySelector('img, video') : null;
 
     if (index > -1) {
         selectedImages.splice(index, 1);
-        if (imgElement) {
-            imgElement.style.border = '';
-            imgElement.style.opacity = '';
+        if (mediaElement) {
+            mediaElement.style.border = '';
+            mediaElement.style.opacity = '';
         }
     } else {
         selectedImages.push(imageId);
-        if (imgElement) {
-            imgElement.style.border = '3px solid #dc3545';
-            imgElement.style.opacity = '0.7';
+        if (mediaElement) {
+            mediaElement.style.border = '3px solid #dc3545';
+            mediaElement.style.opacity = '0.7';
         }
     }
 
@@ -681,11 +718,11 @@ function toggleImageSelection(imageId) {
 
 async function bulkDeleteSelectedImages() {
     if (selectedImages.length === 0) {
-        showNotification('Please select images to delete.', 'error');
+        showNotification('Please select files to delete.', 'error');
         return;
     }
 
-    if (!confirm(`Delete ${selectedImages.length} selected image(s)?`)) return;
+    if (!confirm(`Delete ${selectedImages.length} selected file(s)?`)) return;
 
     loadingOverlay.style.display = 'flex';
 
@@ -717,7 +754,11 @@ async function bulkDeleteSelectedImages() {
                 formData.append('timestamp', timestamp);
                 formData.append('signature', signature);
 
-                const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+                // Determine destroy endpoint based on file type
+                const isVideo = imgData.type === 'video';
+                const destroyEndpoint = isVideo ? 'video/destroy' : 'image/destroy';
+
+                const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/${destroyEndpoint}`, {
                     method: 'POST',
                     body: formData
                 });
@@ -741,7 +782,7 @@ async function bulkDeleteSelectedImages() {
 
         await Promise.all(deletePromises);
 
-        showNotification(`${selectedImages.length} image(s) deleted successfully!`, 'success');
+        showNotification(`${selectedImages.length} file(s) deleted successfully!`, 'success');
 
         selectedImages = [];
         bulkDeleteBtn.style.display = 'none';

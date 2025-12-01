@@ -242,21 +242,47 @@
                 const titleDoc = titleSnapshot.docs[0];
                 currentTitleId = titleDoc.id;
 
-                // Get total count of images for this title
+                // Get total count of images/videos for this title
                 const imageTitlesSnapshot = await db.collection('image_titles')
                     .where('titleId', '==', titleDoc.id)
                     .get();
 
                 if (imageTitlesSnapshot.empty) {
-                    imagesContainer.innerHTML = '<p class="no-images">No images found for this title.</p>';
+                    imagesContainer.innerHTML = '<p class="no-images">No images or videos found for this title.</p>';
                     const albumSubtitle = document.getElementById('albumSubtitle');
-                    albumSubtitle.textContent = `${titleName} (0 ảnh)`;
+                    albumSubtitle.textContent = `${titleName} (0 files)`;
                     return;
                 }
 
-                // Update album subtitle with total count
+                // Count images and videos
+                let imageCount = 0;
+                let videoCount = 0;
+
+                for (const imageTitleDoc of imageTitlesSnapshot.docs) {
+                    const imageDoc = await db.collection('images').doc(imageTitleDoc.data().imageId).get();
+                    if (imageDoc.exists) {
+                        const fileData = imageDoc.data();
+                        if (fileData.type === 'video') {
+                            videoCount++;
+                        } else {
+                            imageCount++;
+                        }
+                    }
+                }
+
+                // Update album subtitle with counts
                 const albumSubtitle = document.getElementById('albumSubtitle');
-                albumSubtitle.textContent = `${titleName} (${imageTitlesSnapshot.size} ảnh)`;
+                let countText = '';
+                if (imageCount > 0 && videoCount > 0) {
+                    countText = `${imageCount} ảnh, ${videoCount} video`;
+                } else if (imageCount > 0) {
+                    countText = `${imageCount} ảnh`;
+                } else if (videoCount > 0) {
+                    countText = `${videoCount} video`;
+                } else {
+                    countText = '0 files';
+                }
+                albumSubtitle.textContent = `${titleName} (${countText})`;
 
                 // Sort images by createdAt (newest at end)
                 const sortedImageTitles = imageTitlesSnapshot.docs.sort((a, b) => {
@@ -279,9 +305,9 @@
                 await loadImagesForPage(currentPage);
 
             } catch (error) {
-                console.error('Error loading images:', error);
-                imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
-                showNotification('Error loading images.', 'error');
+                console.error('Error loading images and videos:', error);
+                imagesContainer.innerHTML = '<p class="no-images">Error loading images and videos.</p>';
+                showNotification('Error loading images and videos.', 'error');
             }
         }
 
@@ -302,7 +328,7 @@
                 imagesContainer.innerHTML = `
                     <div class="loading-container">
                         <div class="pink-spinner"></div>
-                        <p>Loading images...</p>
+                        <p>Loading images and videos...</p>
                     </div>
                 `;
 
@@ -312,7 +338,7 @@
                 const pageImageDocs = loadedImages.all.slice(startIndex, endIndex);
 
                 if (pageImageDocs.length === 0) {
-                    imagesContainer.innerHTML = '<p class="no-images">No images found for this page.</p>';
+                    imagesContainer.innerHTML = '<p class="no-images">No images or videos found for this page.</p>';
                     return;
                 }
 
@@ -335,9 +361,9 @@
                 displayImagesForPage(page);
 
             } catch (error) {
-                console.error('Error loading images for page:', error);
-                imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
-                showNotification('Error loading images.', 'error');
+                console.error('Error loading images and videos for page:', error);
+                imagesContainer.innerHTML = '<p class="no-images">Error loading images and videos.</p>';
+                showNotification('Error loading images and videos.', 'error');
             }
         }
 
@@ -348,25 +374,42 @@
 
             const pageImages = loadedImages[page];
             if (!pageImages || pageImages.length === 0) {
-                imagesContainer.innerHTML = '<p class="no-images">No images to display.</p>';
+                imagesContainer.innerHTML = '<p class="no-images">No images or videos to display.</p>';
                 hidePagination();
                 return;
             }
 
             const totalPages = Math.ceil(totalImages / imagesPerPage);
 
-            // Display images for current page
+            // Display images/videos for current page
             for (const imgData of pageImages) {
-                const imageCard = document.createElement('div');
-                imageCard.className = 'image-card';
+                const mediaCard = document.createElement('div');
+                mediaCard.className = 'image-card';
 
-                const img = document.createElement('img');
-                img.src = imgData.url;
-                img.alt = imgData.name;
-                img.loading = 'lazy'; // Lazy loading for better performance
+                const isVideo = imgData.type === 'video';
 
-                imageCard.appendChild(img);
-                imagesContainer.appendChild(imageCard);
+                if (isVideo) {
+                    const video = document.createElement('video');
+                    video.src = imgData.url;
+                    video.controls = true;
+                    video.style.maxWidth = '90%';
+                    video.style.display = 'block';
+                    video.style.margin = '0 auto';
+                    video.style.height = 'auto';
+                    video.style.borderRadius = '8px';
+                    video.preload = 'metadata'; // Load metadata for better performance
+
+                    mediaCard.appendChild(video);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = imgData.url;
+                    img.alt = imgData.name;
+                    img.loading = 'lazy'; // Lazy loading for better performance
+
+                    mediaCard.appendChild(img);
+                }
+
+                imagesContainer.appendChild(mediaCard);
             }
 
             // Update pagination UI
