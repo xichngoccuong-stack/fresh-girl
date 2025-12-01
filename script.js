@@ -24,7 +24,6 @@ const uploadSpinner = document.getElementById('uploadSpinner');
 const imagePreview = document.getElementById('imagePreview');
 const titleInput = document.getElementById('titleInput');
 const searchSelect = document.getElementById('searchSelect');
-const showAllBtn = document.getElementById('showAllBtn');
 const openManageModalBtn = document.getElementById('openManageModalBtn');
 const oldTitleSelect = document.getElementById('oldTitleSelect');
 const newTitleInput = document.getElementById('newTitleInput');
@@ -124,8 +123,8 @@ async function uploadImage() {
     const successCount = results.filter(r => r.success).length;
     const errorCount = results.filter(r => !r.success).length;
 
-    // Reload images to display the new ones
-    loadImages();
+    // Reload images to display the new ones (show images for the uploaded title)
+    loadImages(selectedTitle);
     // Update titles list
     populateTitles();
     // Clear the input and preview (keep title selection)
@@ -146,12 +145,13 @@ async function uploadImage() {
     uploadBtn.textContent = 'Upload Images';
 }
 
-// Function to load and display images individually from Firebase
+// Function to load and display images individually from Firebase with pagination
 async function loadImages(query = null) {
     imagesContainer.innerHTML = '<p>Loading images...</p>';
 
     try {
         let imageQuery;
+        let imageIds = []; // Initialize as empty array
 
         if (query) {
             // If filtering by title, get images for that specific title
@@ -164,83 +164,214 @@ async function loadImages(query = null) {
 
                 if (imageTitlesSnapshot.empty) {
                     imagesContainer.innerHTML = '<p>No images found with this title.</p>';
+                    hidePagination();
                     return;
                 }
 
-                const imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
-                imageQuery = db.collection('images').where('__name__', 'in', imageIds.slice(0, 10)); // Firestore 'in' limit is 10
+                imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
+                console.log(`Found ${imageIds.length} images for title "${query}"`);
+
+                // Instead of using 'in' query with limit, we'll load all images and filter client-side
+                // This allows us to show all images for a title without Firestore limitations
+                imageQuery = db.collection('images').orderBy('uploadedAt', 'desc');
             } else {
                 imagesContainer.innerHTML = '<p>No images found with this title.</p>';
+                hidePagination();
                 return;
             }
         } else {
-            // Get all images if no filter
-            imageQuery = db.collection('images').orderBy('uploadedAt', 'desc');
-        }
-
-        const imagesSnapshot = await imageQuery.get();
-        imagesContainer.innerHTML = '';
-
-        if (imagesSnapshot.empty) {
-            imagesContainer.innerHTML = query ? '<p>No images found with this title.</p>' : '<p>No images uploaded yet.</p>';
+            // Show message when no title is selected
+            imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
+            hidePagination();
             return;
         }
 
-        // Display each image individually
+        const imagesSnapshot = await imageQuery.get();
+        console.log(`Firebase returned ${imagesSnapshot.docs.length} documents`);
+
+        if (imagesSnapshot.empty) {
+            imagesContainer.innerHTML = query ? '<p>No images found with this title.</p>' : '<p>No images uploaded yet.</p>';
+            hidePagination();
+            return;
+        }
+
+        // Collect all valid images first, then sort them by uploadedAt
+        const validImages = [];
+        console.log(`Processing ${imagesSnapshot.docs.length} total images from Firebase`);
+
         for (const imageDoc of imagesSnapshot.docs) {
             const imgData = imageDoc.data();
 
-            // Get title information for delete function
-            const imageTitlesSnapshot = await db.collection('image_titles')
-                .where('imageId', '==', imageDoc.id)
-                .get();
-
-            let titleId = null;
-            if (!imageTitlesSnapshot.empty) {
-                titleId = imageTitlesSnapshot.docs[0].data().titleId;
+            // For filtered queries, check if this image belongs to the selected title
+            if (query) {
+                const isImageInTitle = imageIds.includes(imageDoc.id);
+                console.log(`Image ${imageDoc.id}: ${isImageInTitle ? 'INCLUDED' : 'EXCLUDED'} for title "${query}"`);
+                if (!isImageInTitle) {
+                    continue; // Skip images that don't belong to the selected title
+                }
             }
 
-            const imgWrapper = document.createElement('div');
-            imgWrapper.className = 'image-item';
-
-            const img = document.createElement('img');
-            img.src = imgData.url;
-            img.alt = imgData.name;
-            img.style.cursor = 'pointer';
-            img.onclick = () => openModal(imgData.url);
-
-            const deleteBtn = document.createElement('button');
-            deleteBtn.textContent = 'Del';
-            deleteBtn.className = 'delete-btn';
-            deleteBtn.onclick = () => deleteImage(imageDoc.id, imgData.publicId, titleId);
-
-            // Add set thumbnail button if we have titleId
-            let setThumbnailBtn = null;
-            if (titleId) {
-                setThumbnailBtn = document.createElement('button');
-                setThumbnailBtn.textContent = 'Set Thumbnail';
-                setThumbnailBtn.className = 'set-thumbnail-btn';
-                setThumbnailBtn.onclick = async () => {
-                    // Get title name
-                    const titleDoc = await db.collection('titles').doc(titleId).get();
-                    if (titleDoc.exists) {
-                        const titleName = titleDoc.data().name;
-                        openThumbnailModal(titleId, titleName);
-                    }
-                };
-            }
-
-            imgWrapper.appendChild(img);
-            if (setThumbnailBtn) {
-                imgWrapper.appendChild(setThumbnailBtn);
-            }
-            imgWrapper.appendChild(deleteBtn);
-            imagesContainer.appendChild(imgWrapper);
+            validImages.push({ doc: imageDoc, data: imgData });
         }
+
+        console.log(`After filtering: ${validImages.length} valid images for display`);
+
+        // Sort by uploadedAt descending (newest first)
+        validImages.sort((a, b) => {
+            const dateA = a.data.uploadedAt?.toDate?.() || new Date(a.data.uploadedAt);
+            const dateB = b.data.uploadedAt?.toDate?.() || new Date(b.data.uploadedAt);
+            return dateB - dateA; // Newest first
+        });
+
+        // Store all images for pagination
+        allImages = validImages;
+        totalImages = validImages.length;
+        console.log(`Total images loaded: ${totalImages}, images per page: ${imagesPerPage}`);
+
+        // Reset to first page when loading new images
+        currentPage = 1;
+
+        // Display current page
+        console.log('Calling displayImagesForPage with currentPage:', currentPage);
+        displayImagesForPage(currentPage);
 
     } catch (error) {
         console.error('Error loading images:', error);
         imagesContainer.innerHTML = '<p>Error loading images.</p>';
+        hidePagination();
+    }
+}
+
+// Function to display images for a specific page
+async function displayImagesForPage(page) {
+    console.log(`displayImagesForPage called with page: ${page}, allImages.length: ${allImages.length}`);
+    imagesContainer.innerHTML = ''; // Clear previous content
+
+    if (allImages.length === 0) {
+        console.log('No images to display');
+        imagesContainer.innerHTML = '<p>No images to display.</p>';
+        hidePagination();
+        return;
+    }
+
+    const totalPages = Math.ceil(totalImages / imagesPerPage);
+    const startIndex = (page - 1) * imagesPerPage;
+    const endIndex = Math.min(startIndex + imagesPerPage, totalImages);
+
+    console.log(`Displaying page ${page} of ${totalPages}: images ${startIndex + 1} to ${endIndex} of ${totalImages}`);
+
+    // Display images for current page
+    for (let i = startIndex; i < endIndex; i++) {
+        const { doc: imageDoc, data: imgData } = allImages[i];
+
+        // Get title information for delete function
+        const imageTitlesSnapshot = await db.collection('image_titles')
+            .where('imageId', '==', imageDoc.id)
+            .get();
+
+        let titleId = null;
+        if (!imageTitlesSnapshot.empty) {
+            titleId = imageTitlesSnapshot.docs[0].data().titleId;
+        }
+
+        const imgWrapper = document.createElement('div');
+        imgWrapper.className = 'image-item';
+
+        const img = document.createElement('img');
+        img.src = imgData.url;
+        img.alt = imgData.name;
+        img.style.cursor = 'pointer';
+        img.onclick = () => openModal(imgData.url);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Del';
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.onclick = () => deleteImage(imageDoc.id, imgData.publicId, titleId);
+
+        // Add set thumbnail button if we have titleId
+        let setThumbnailBtn = null;
+        if (titleId) {
+            setThumbnailBtn = document.createElement('button');
+            setThumbnailBtn.textContent = 'Set Thumbnail';
+            setThumbnailBtn.className = 'set-thumbnail-btn';
+            setThumbnailBtn.onclick = async () => {
+                // Get title name
+                const titleDoc = await db.collection('titles').doc(titleId).get();
+                if (titleDoc.exists) {
+                    const titleName = titleDoc.data().name;
+                    openThumbnailModal(titleId, titleName);
+                }
+            };
+        }
+
+        imgWrapper.appendChild(img);
+        if (setThumbnailBtn) {
+            imgWrapper.appendChild(setThumbnailBtn);
+        }
+        imgWrapper.appendChild(deleteBtn);
+        imagesContainer.appendChild(imgWrapper);
+    }
+
+    // Update pagination UI
+    updatePaginationUI(page, totalPages);
+}
+
+// Function to update pagination UI
+function updatePaginationUI(currentPage, totalPages) {
+    console.log(`Updating pagination UI: page ${currentPage} of ${totalPages}, total images: ${totalImages}`);
+    const paginationContainer = document.getElementById('paginationContainer');
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    if (totalPages <= 1) {
+        console.log('Hiding pagination - only 1 page or less');
+        hidePagination();
+        return;
+    }
+
+    // Update page info
+    pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalImages} images)`;
+
+    // Enable/disable buttons
+    prevBtn.disabled = currentPage === 1;
+    nextBtn.disabled = currentPage === totalPages;
+
+    // Show pagination
+    console.log('Showing pagination container');
+    paginationContainer.style.display = 'flex';
+}
+
+// Function to hide pagination
+function hidePagination() {
+    const paginationContainer = document.getElementById('paginationContainer');
+    if (paginationContainer) {
+        paginationContainer.style.display = 'none';
+    }
+}
+
+// Function to go to previous page
+function goToPrevPage() {
+    console.log('Previous button clicked, current page:', currentPage);
+    if (currentPage > 1) {
+        currentPage--;
+        console.log('Going to previous page:', currentPage);
+        displayImagesForPage(currentPage);
+    } else {
+        console.log('Already on first page');
+    }
+}
+
+// Function to go to next page
+function goToNextPage() {
+    const totalPages = Math.ceil(totalImages / imagesPerPage);
+    console.log('Next button clicked, current page:', currentPage, 'total pages:', totalPages);
+    if (currentPage < totalPages) {
+        currentPage++;
+        console.log('Going to next page:', currentPage);
+        displayImagesForPage(currentPage);
+    } else {
+        console.log('Already on last page');
     }
 }
 
@@ -358,12 +489,27 @@ async function deleteImage(docId, publicId, titleId) {
             await Promise.all(deletePromises);
 
             showNotification('Image deleted successfully!', 'success');
-            // Preserve current filter state
+            // Preserve current filter state and page
             const currentFilter = searchSelect.value;
             if (currentFilter) {
-                loadImages(currentFilter);
+                // Remove the deleted image from allImages array
+                allImages = allImages.filter(item => item.doc.id !== docId);
+                totalImages = allImages.length;
+
+                // If we're on a page that no longer exists, go to the last page
+                const totalPages = Math.ceil(totalImages / imagesPerPage);
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                }
+
+                // Reload current page
+                if (totalImages > 0) {
+                    displayImagesForPage(currentPage);
+                } else {
+                    loadImages(currentFilter); // Reload to show "no images" message
+                }
             } else {
-                loadImages();
+                imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
             }
         } else {
             showNotification('Error deleting image: ' + (data.error ? data.error.message : 'Unknown error'), 'error');
@@ -453,15 +599,10 @@ searchSelect.addEventListener('change', () => {
     if (query) {
         loadImages(query); // Load images for specific title
     } else {
-        loadImages(); // Load all images if no selection
+        imagesContainer.innerHTML = '<p>Please select a title to view images.</p>'; // Show message when no title selected
     }
 });
 
-// Show all images button
-showAllBtn.addEventListener('click', () => {
-    searchSelect.value = ''; // Clear search selection
-    loadImages(); // Load all images
-});
 
 
 // Manage modal
@@ -511,7 +652,9 @@ updateTitleBtn.addEventListener('click', async () => {
             showNotification('Title updated successfully.', 'success');
             // Refresh
             populateTitles();
-            loadImages();
+            // Clear search selection and show message
+            searchSelect.value = '';
+            imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
             // Clear
             oldTitleSelect.value = '';
             newTitleInput.value = '';
@@ -599,6 +742,12 @@ window.addEventListener('load', populateTitles);
 // Global variables for thumbnail functionality
 let currentThumbnailTitleId = null;
 let selectedThumbnailImageId = null;
+
+// Pagination variables
+let currentPage = 1;
+const imagesPerPage = 20;
+let totalImages = 0;
+let allImages = []; // Store all images for pagination
 
 // Function to open thumbnail modal for a specific title
 async function openThumbnailModal(titleId, titleName) {
@@ -736,6 +885,10 @@ async function removeThumbnail() {
         showNotification('Error removing thumbnail.', 'error');
     }
 }
+
+// Pagination event listeners
+document.getElementById('prevPageBtn').addEventListener('click', goToPrevPage);
+document.getElementById('nextPageBtn').addEventListener('click', goToNextPage);
 
 // Event listeners for thumbnail modal
 closeThumbnailModal.addEventListener('click', () => {

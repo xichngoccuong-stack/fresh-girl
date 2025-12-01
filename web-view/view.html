@@ -60,6 +60,13 @@
             <div id="imagesContainer" class="image-grid">
                 <p class="loading-text">Loading images...</p>
             </div>
+
+            <!-- Pagination controls -->
+            <div id="paginationContainer" style="display: none; text-align: center; margin-top: 30px; margin-bottom: 20px;">
+                <button id="prevPageBtn" class="pagination-btn">Previous</button>
+                <span id="pageInfo" class="page-info" style="color: #cccccc; margin: 0 15px; font-size: 1.1em;">Page 1 of 1</span>
+                <button id="nextPageBtn" class="pagination-btn">Next</button>
+            </div>
         </div>
         </div>
 
@@ -81,6 +88,12 @@
         // Notification elements
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
+
+        // Pagination variables
+        let currentPage = 1;
+        const imagesPerPage = 20;
+        let totalImages = 0;
+        let allImages = []; // Store all images for pagination
 
         // Get title from URL parameters
         function getTitleFromURL() {
@@ -120,33 +133,140 @@
                 }
 
                 imageCount.textContent = `${imageTitlesSnapshot.size} image${imageTitlesSnapshot.size !== 1 ? 's' : ''}`;
-                imagesContainer.innerHTML = '';
 
-                // Display each image
+                // Collect all images first for pagination
+                const validImages = [];
                 for (const imageTitleDoc of imageTitlesSnapshot.docs) {
                     const imageTitleData = imageTitleDoc.data();
                     const imageDoc = await db.collection('images').doc(imageTitleData.imageId).get();
 
                     if (imageDoc.exists) {
                         const imgData = imageDoc.data();
-
-                        const imageCard = document.createElement('div');
-                        imageCard.className = 'image-card';
-
-                        const img = document.createElement('img');
-                        img.src = imgData.url;
-                        img.alt = imgData.name;
-                        img.loading = 'lazy'; // Lazy loading for better performance
-
-                        imageCard.appendChild(img);
-                        imagesContainer.appendChild(imageCard);
+                        validImages.push(imgData);
                     }
                 }
+
+                // Sort by uploadedAt ascending (oldest first, so newest appears at the end)
+                validImages.sort((a, b) => {
+                    const dateA = a.uploadedAt?.toDate?.() || new Date(a.uploadedAt);
+                    const dateB = b.uploadedAt?.toDate?.() || new Date(b.uploadedAt);
+                    return dateA - dateB;
+                });
+
+                // Store all images for pagination
+                allImages = validImages;
+                totalImages = validImages.length;
+                console.log(`Total images loaded: ${totalImages}, images per page: ${imagesPerPage}`);
+
+                // Reset to first page when loading new images
+                currentPage = 1;
+
+                // Display current page
+                console.log('Calling displayImagesForPage with currentPage:', currentPage);
+                displayImagesForPage(currentPage);
 
             } catch (error) {
                 console.error('Error loading images:', error);
                 imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
                 showNotification('Error loading images.', 'error');
+            }
+        }
+
+        // Function to display images for a specific page
+        function displayImagesForPage(page) {
+            console.log(`displayImagesForPage called with page: ${page}, allImages.length: ${allImages.length}`);
+            const imagesContainer = document.getElementById('imagesContainer');
+            imagesContainer.innerHTML = ''; // Clear previous content
+
+            if (allImages.length === 0) {
+                console.log('No images to display');
+                imagesContainer.innerHTML = '<p class="no-images">No images to display.</p>';
+                hidePagination();
+                return;
+            }
+
+            const totalPages = Math.ceil(totalImages / imagesPerPage);
+            const startIndex = (page - 1) * imagesPerPage;
+            const endIndex = Math.min(startIndex + imagesPerPage, totalImages);
+
+            console.log(`Displaying page ${page} of ${totalPages}: images ${startIndex + 1} to ${endIndex} of ${totalImages}`);
+
+            // Display images for current page
+            for (let i = startIndex; i < endIndex; i++) {
+                const imgData = allImages[i];
+
+                const imageCard = document.createElement('div');
+                imageCard.className = 'image-card';
+
+                const img = document.createElement('img');
+                img.src = imgData.url;
+                img.alt = imgData.name;
+                img.loading = 'lazy'; // Lazy loading for better performance
+
+                imageCard.appendChild(img);
+                imagesContainer.appendChild(imageCard);
+            }
+
+            // Update pagination UI
+            updatePaginationUI(page, totalPages);
+        }
+
+        // Function to update pagination UI
+        function updatePaginationUI(currentPage, totalPages) {
+            console.log(`Updating pagination UI: page ${currentPage} of ${totalPages}, total images: ${totalImages}`);
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPageBtn');
+            const nextBtn = document.getElementById('nextPageBtn');
+
+            if (totalPages <= 1) {
+                console.log('Hiding pagination - only 1 page or less');
+                hidePagination();
+                return;
+            }
+
+            // Update page info
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalImages} images)`;
+
+            // Enable/disable buttons
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            // Show pagination
+            console.log('Showing pagination container');
+            paginationContainer.style.display = 'block';
+        }
+
+        // Function to hide pagination
+        function hidePagination() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            if (paginationContainer) {
+                paginationContainer.style.display = 'none';
+            }
+        }
+
+        // Function to go to previous page
+        function goToPrevPage() {
+            console.log('Previous button clicked, current page:', currentPage);
+            if (currentPage > 1) {
+                currentPage--;
+                console.log('Going to previous page:', currentPage);
+                displayImagesForPage(currentPage);
+            } else {
+                console.log('Already on first page');
+            }
+        }
+
+        // Function to go to next page
+        function goToNextPage() {
+            const totalPages = Math.ceil(totalImages / imagesPerPage);
+            console.log('Next button clicked, current page:', currentPage, 'total pages:', totalPages);
+            if (currentPage < totalPages) {
+                currentPage++;
+                console.log('Going to next page:', currentPage);
+                displayImagesForPage(currentPage);
+            } else {
+                console.log('Already on last page');
             }
         }
 
@@ -165,6 +285,10 @@
         function hideNotification() {
             notification.style.display = 'none';
         }
+
+        // Pagination event listeners
+        document.getElementById('prevPageBtn').addEventListener('click', goToPrevPage);
+        document.getElementById('nextPageBtn').addEventListener('click', goToNextPage);
 
         // Load images on page load
         window.addEventListener('load', () => {

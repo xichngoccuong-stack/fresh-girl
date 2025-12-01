@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FG Management Page</title>
+    <link rel="icon" type="image/x-icon" href="tabLogo.jpg">
     <link rel="stylesheet" href="styles.css">
     <!-- Firebase SDK v8 (for compatibility with static HTML) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -42,9 +43,15 @@
                 <select id="searchSelect">
                     <option value="">Select title</option>
                 </select>
-                <button id="showAllBtn">Show All Images</button>
             </div>
             <div id="imagesContainer"></div>
+
+            <!-- Pagination controls -->
+            <div id="paginationContainer" style="display: none;">
+                <button id="prevPageBtn" class="pagination-btn">Previous</button>
+                <span id="pageInfo" class="page-info">Page 1 of 1</span>
+                <button id="nextPageBtn" class="pagination-btn">Next</button>
+            </div>
         </div>
     </div>
 
