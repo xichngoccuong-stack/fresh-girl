@@ -32,6 +32,11 @@
             0%, 100% { box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
             50% { box-shadow: 0 0 30px rgba(255, 105, 180, 0.5), 0 0 60px rgba(255, 20, 147, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
         }
+
+        @keyframes glow {
+            from { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(255,105,180,0.5); }
+            to { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 20px rgba(255,20,147,0.8), 0 0 30px rgba(255,20,147,0.6); }
+        }
     </style>
 </head>
 <body>
@@ -41,13 +46,14 @@
             <div style="position: absolute; top: 70%; right: 10%; width: 120px; height: 120px; background: radial-gradient(circle, rgba(255,20,147,0.06) 0%, transparent 70%); border-radius: 50%; animation: float 8s ease-in-out infinite reverse;"></div>
             <div style="position: absolute; bottom: 10%; left: 15%; width: 90px; height: 90px; background: radial-gradient(circle, rgba(220,20,60,0.05) 0%, transparent 70%); border-radius: 50%; animation: float 7s ease-in-out infinite;"></div>
 
-            <div class="gallery-container" style="margin-top: 80px;">
-            <a href="index.html" class="back-link" style="display: inline-block; color: #ff69b4; text-decoration: none; font-weight: bold; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 20px; transition: all 0.3s ease; position: relative; z-index: 1;">← Back to Titles</a>
+            <div class="gallery-container" style="padding-bottom: 80px;">
 
-            <div style="display: flex; align-items: center; justify-content: center; margin: 0; position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 5px 0; backdrop-filter: blur(10px); border: 3px solid transparent; border-radius: 0 0 15px 15px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite;">
+            <div style="display: flex; align-items: center; justify-content: center; margin: 0; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 9px; backdrop-filter: blur(10px); border: 3px solid transparent; border-radius: 15px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite; margin-bottom: 20px;">
 
-                <h1 id="titleHeading" style="color: #ffffff; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.2em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite; margin: 0 20px 0 0; position: relative; z-index: 2;">Loading...</h1>
-                <p id="imageCount" style="color: #cccccc; margin: 0; font-size: 1.1em; position: relative; z-index: 2;">Loading...</p>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <img src="logo.jpg" alt="Logo" style="height: 85px; width: auto; margin-right: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
+                    <h1 id="titleHeading" style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate; position: relative; z-index: 2;">Gái xinh Việt Nam</h1>
+                </div>
 
                 <!-- Enhanced Sparkle effects -->
                 <div style="position: absolute; top: -8px; right: -8px; width: 12px; height: 12px; background: #ff69b4; border-radius: 50%; animation: sparkle 2s ease-in-out infinite; box-shadow: 0 0 10px #ff69b4;"></div>
@@ -56,6 +62,12 @@
                 <div style="position: absolute; top: -6px; left: 20%; width: 6px; height: 6px; background: #ff69b4; border-radius: 50%; animation: sparkle 1.8s ease-in-out infinite; box-shadow: 0 0 4px #ff69b4;"></div>
                 <div style="position: absolute; bottom: -6px; right: 30%; width: 5px; height: 5px; background: #ff1493; border-radius: 50%; animation: sparkle 2.2s ease-in-out infinite; box-shadow: 0 0 3px #ff1493;"></div>
                 <div style="position: absolute; top: 20%; left: -10px; width: 7px; height: 7px; background: #dc143c; border-radius: 50%; animation: sparkle 2.8s ease-in-out infinite; box-shadow: 0 0 5px #dc143c;"></div>
+            </div>
+
+            <!-- Album subtitle -->
+            <div style="text-align: center; margin-bottom: 30px; margin-top: 20px; position: relative;">
+                <p id="albumSubtitle" style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">Loading album...</p>
+                <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
             </div>
 
             <!-- Notification system -->
@@ -73,10 +85,24 @@
 
             <!-- Pagination controls -->
             <div id="paginationContainer" style="display: none; text-align: center; margin-top: 30px; margin-bottom: 20px;">
+                <button id="firstPageBtn" class="pagination-btn">First</button>
                 <button id="prevPageBtn" class="pagination-btn">Previous</button>
                 <span id="pageInfo" class="page-info" style="color: #cccccc; margin: 0 15px; font-size: 1.1em;">Page 1 of 1</span>
                 <button id="nextPageBtn" class="pagination-btn">Next</button>
+                <button id="lastPageBtn" class="pagination-btn">Last</button>
             </div>
+
+            <!-- Footer -->
+            <footer style="width: 100%; text-align: center; margin-top: 50px; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); border-top: 3px solid transparent; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);">
+                <div style="display: inline-block; padding: 15px 25px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">
+                    <p style="color: #cccccc; margin: 0; font-size: 1em; line-height: 1.4;">
+                        Thông tin liên hệ:<br>
+                        Tiktok: @fresh-girl-vn.surge.sh<br>
+                        X: Updating...
+                    </p>
+                </div>
+                <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+            </footer>
         </div>
         </div>
 
@@ -101,9 +127,10 @@
 
         // Pagination variables
         let currentPage = 1;
-        const imagesPerPage = 20;
+        const imagesPerPage = 10;
         let totalImages = 0;
-        let allImages = []; // Store all images for pagination
+        let loadedImages = {}; // Store loaded images by page
+        let currentTitleId = null; // Track current title
 
         // Get title from URL parameters
         function getTitleFromURL() {
@@ -115,9 +142,6 @@
         async function loadImagesForTitle(titleName) {
             const imagesContainer = document.getElementById('imagesContainer');
             const titleHeading = document.getElementById('titleHeading');
-            const imageCount = document.getElementById('imageCount');
-
-            titleHeading.textContent = titleName;
 
             try {
                 // Get title document
@@ -126,55 +150,113 @@
                 if (titleSnapshot.empty) {
                     imagesContainer.innerHTML = '<p class="no-images">Title not found.</p>';
                     titleHeading.textContent = 'Title Not Found';
+                    const albumSubtitle = document.getElementById('albumSubtitle');
+                    albumSubtitle.textContent = '❌ Album not found ❌';
                     return;
                 }
 
                 const titleDoc = titleSnapshot.docs[0];
+                currentTitleId = titleDoc.id;
 
-                // Get images for this title
+                // Get total count of images for this title
                 const imageTitlesSnapshot = await db.collection('image_titles')
                     .where('titleId', '==', titleDoc.id)
                     .get();
 
                 if (imageTitlesSnapshot.empty) {
                     imagesContainer.innerHTML = '<p class="no-images">No images found for this title.</p>';
-                    imageCount.textContent = '0 images';
+                    const albumSubtitle = document.getElementById('albumSubtitle');
+                    albumSubtitle.textContent = `📸 ${titleName} - 0 images 📸`;
                     return;
                 }
 
-                imageCount.textContent = `${imageTitlesSnapshot.size} image${imageTitlesSnapshot.size !== 1 ? 's' : ''}`;
+                // Update album subtitle with total count
+                const albumSubtitle = document.getElementById('albumSubtitle');
+                albumSubtitle.textContent = `📸 ${titleName} - ${imageTitlesSnapshot.size} image${imageTitlesSnapshot.size !== 1 ? 's' : ''} 📸`;
 
-                // Collect all images first for pagination
-                const validImages = [];
-                for (const imageTitleDoc of imageTitlesSnapshot.docs) {
+                // Store total images count
+                totalImages = imageTitlesSnapshot.size;
+
+                // Reset loaded images cache for new title
+                loadedImages = {};
+
+                // Reset to first page when loading new images
+                currentPage = 1;
+
+                // Load and display first page
+                await loadImagesForPage(currentPage);
+
+            } catch (error) {
+                console.error('Error loading images:', error);
+                imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
+                showNotification('Error loading images.', 'error');
+            }
+        }
+
+        // Function to load images for a specific page
+        async function loadImagesForPage(page) {
+            if (!currentTitleId) return;
+
+            // Check if images for this page are already loaded
+            if (loadedImages[page]) {
+                displayImagesForPage(page);
+                return;
+            }
+
+            const imagesContainer = document.getElementById('imagesContainer');
+
+            try {
+                // Show loading spinner while fetching
+                imagesContainer.innerHTML = `
+                    <div class="loading-container">
+                        <div class="pink-spinner"></div>
+                        <p>Loading images...</p>
+                    </div>
+                `;
+
+                // Get images for this title with pagination
+                const imageTitlesSnapshot = await db.collection('image_titles')
+                    .where('titleId', '==', currentTitleId)
+                    .limit(imagesPerPage * page) // Get enough for current page
+                    .get();
+
+                if (imageTitlesSnapshot.empty) {
+                    imagesContainer.innerHTML = '<p class="no-images">No images found for this page.</p>';
+                    return;
+                }
+
+                // Sort documents by createdAt (oldest first so newest appears at end)
+                const sortedDocs = imageTitlesSnapshot.docs.sort((a, b) => {
+                    const dateA = a.data().createdAt?.toDate?.() || new Date(a.data().createdAt);
+                    const dateB = b.data().createdAt?.toDate?.() || new Date(b.data().createdAt);
+                    return dateA - dateB;
+                });
+
+                // Get the images for current page only
+                const startIndex = (page - 1) * imagesPerPage;
+                const endIndex = Math.min(startIndex + imagesPerPage, sortedDocs.length);
+                const pageImageDocs = sortedDocs.slice(startIndex, endIndex);
+
+                // Load image data for current page
+                const pageImages = [];
+                for (const imageTitleDoc of pageImageDocs) {
                     const imageTitleData = imageTitleDoc.data();
                     const imageDoc = await db.collection('images').doc(imageTitleData.imageId).get();
 
                     if (imageDoc.exists) {
                         const imgData = imageDoc.data();
-                        validImages.push(imgData);
+                        pageImages.push(imgData);
                     }
                 }
 
-                // Sort by uploadedAt ascending (oldest first, so newest appears at the end)
-                validImages.sort((a, b) => {
-                    const dateA = a.uploadedAt?.toDate?.() || new Date(a.uploadedAt);
-                    const dateB = b.uploadedAt?.toDate?.() || new Date(b.uploadedAt);
-                    return dateA - dateB;
-                });
-
-                // Store all images for pagination
-                allImages = validImages;
-                totalImages = validImages.length;
-
-                // Reset to first page when loading new images
-                currentPage = 1;
+                // Cache loaded images for this page
+                loadedImages[page] = pageImages;
 
                 // Display current page
-                displayImagesForPage(currentPage);
+                displayImagesForPage(page);
 
             } catch (error) {
-                console.error('Error loading images:', error);
+                console.error('Error loading images for page:', error);
                 imagesContainer.innerHTML = '<p class="no-images">Error loading images.</p>';
                 showNotification('Error loading images.', 'error');
             }
@@ -185,20 +267,17 @@
             const imagesContainer = document.getElementById('imagesContainer');
             imagesContainer.innerHTML = ''; // Clear previous content
 
-            if (allImages.length === 0) {
+            const pageImages = loadedImages[page];
+            if (!pageImages || pageImages.length === 0) {
                 imagesContainer.innerHTML = '<p class="no-images">No images to display.</p>';
                 hidePagination();
                 return;
             }
 
             const totalPages = Math.ceil(totalImages / imagesPerPage);
-            const startIndex = (page - 1) * imagesPerPage;
-            const endIndex = Math.min(startIndex + imagesPerPage, totalImages);
 
             // Display images for current page
-            for (let i = startIndex; i < endIndex; i++) {
-                const imgData = allImages[i];
-
+            for (const imgData of pageImages) {
                 const imageCard = document.createElement('div');
                 imageCard.className = 'image-card';
 
@@ -219,8 +298,10 @@
         function updatePaginationUI(currentPage, totalPages) {
             const paginationContainer = document.getElementById('paginationContainer');
             const pageInfo = document.getElementById('pageInfo');
+            const firstBtn = document.getElementById('firstPageBtn');
             const prevBtn = document.getElementById('prevPageBtn');
             const nextBtn = document.getElementById('nextPageBtn');
+            const lastBtn = document.getElementById('lastPageBtn');
 
             if (totalPages <= 1) {
                 hidePagination();
@@ -231,8 +312,10 @@
             pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalImages} images)`;
 
             // Enable/disable buttons
+            firstBtn.disabled = currentPage === 1;
             prevBtn.disabled = currentPage === 1;
             nextBtn.disabled = currentPage === totalPages;
+            lastBtn.disabled = currentPage === totalPages;
 
             // Show pagination
             paginationContainer.style.display = 'block';
@@ -246,20 +329,37 @@
             }
         }
 
+        // Function to go to first page
+        async function goToFirstPage() {
+            if (currentPage !== 1) {
+                currentPage = 1;
+                await loadImagesForPage(currentPage);
+            }
+        }
+
         // Function to go to previous page
-        function goToPrevPage() {
+        async function goToPrevPage() {
             if (currentPage > 1) {
                 currentPage--;
-                displayImagesForPage(currentPage);
+                await loadImagesForPage(currentPage);
             }
         }
 
         // Function to go to next page
-        function goToNextPage() {
+        async function goToNextPage() {
             const totalPages = Math.ceil(totalImages / imagesPerPage);
             if (currentPage < totalPages) {
                 currentPage++;
-                displayImagesForPage(currentPage);
+                await loadImagesForPage(currentPage);
+            }
+        }
+
+        // Function to go to last page
+        async function goToLastPage() {
+            const totalPages = Math.ceil(totalImages / imagesPerPage);
+            if (currentPage !== totalPages) {
+                currentPage = totalPages;
+                await loadImagesForPage(currentPage);
             }
         }
 
@@ -280,8 +380,10 @@
         }
 
         // Pagination event listeners
+        document.getElementById('firstPageBtn').addEventListener('click', goToFirstPage);
         document.getElementById('prevPageBtn').addEventListener('click', goToPrevPage);
         document.getElementById('nextPageBtn').addEventListener('click', goToNextPage);
+        document.getElementById('lastPageBtn').addEventListener('click', goToLastPage);
 
         // Load images on page load
         window.addEventListener('load', () => {
@@ -291,6 +393,8 @@
             } else {
                 document.getElementById('titleHeading').textContent = 'No Title Specified';
                 document.getElementById('imagesContainer').innerHTML = '<p class="no-images">Please go back and select a title.</p>';
+                const albumSubtitle = document.getElementById('albumSubtitle');
+                albumSubtitle.textContent = '❓ No album selected ❓';
             }
         });
     </script>

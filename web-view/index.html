@@ -83,6 +83,42 @@
             0%, 100% { box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
             50% { box-shadow: 0 0 30px rgba(255, 105, 180, 0.5), 0 0 60px rgba(255, 20, 147, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2); }
         }
+
+        /* Pink Loading Spinner */
+        .pink-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 105, 180, 0.3);
+            border-radius: 50%;
+            border-top-color: #ff69b4;
+            animation: pink-spin 1s ease-in-out infinite;
+            margin: 0 auto;
+            display: block;
+        }
+
+        @keyframes pink-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-container {
+            text-align: center;
+            padding: 80px 20px;
+            color: #ffffff;
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 200px;
+        }
+
+        .loading-container p {
+            margin: 25px 0 0 0;
+            color: #ff69b4;
+            font-weight: bold;
+            font-size: 22px;
+        }
     </style>
 </head>
 <body>
@@ -116,8 +152,23 @@
         </div>
 
         <div id="titlesContainer" class="title-grid">
-            <p class="loading-text">Loading titles...</p>
+            <div class="loading-container">
+                <div class="pink-spinner"></div>
+                <p>Loading titles...</p>
+            </div>
         </div>
+
+        <!-- Footer -->
+        <footer style="width: 100%; text-align: center; margin-top: 50px; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); border-top: 3px solid transparent; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);">
+            <div style="display: inline-block; padding: 15px 25px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">
+                <p style="color: #cccccc; margin: 0; font-size: 1em; line-height: 1.4;">
+                    Thông tin liên hệ:<br>
+                    Tiktok: @fresh-girl-vn.surge.sh<br>
+                    X: Updating...
+                </p>
+            </div>
+            <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+        </footer>
     </div>
 
     <script>
@@ -145,14 +196,22 @@
 
             try {
                 const titlesSnapshot = await db.collection('titles').orderBy('createdAt', 'desc').get();
-                titlesContainer.innerHTML = '';
 
                 if (titlesSnapshot.empty) {
                     titlesContainer.innerHTML = '<p class="loading-text">No titles found.</p>';
                     return;
                 }
 
-                for (const titleDoc of titlesSnapshot.docs) {
+                // Clear container and show loading spinner
+                titlesContainer.innerHTML = `
+                    <div class="loading-container">
+                        <div class="pink-spinner"></div>
+                        <p>Loading albums...</p>
+                    </div>
+                `;
+
+                // Process all titles and collect their data
+                const titlePromises = titlesSnapshot.docs.map(async (titleDoc) => {
                     const titleData = titleDoc.data();
                     const titleName = titleData.name;
 
@@ -181,6 +240,16 @@
                         console.warn('Error loading thumbnail for title:', titleName, error);
                     }
 
+                    return { titleName, imageCount, thumbnailUrl };
+                });
+
+                // Wait for all titles to be processed
+                const titleDataArray = await Promise.all(titlePromises);
+
+                // Clear loading and display all titles at once
+                titlesContainer.innerHTML = '';
+
+                for (const { titleName, imageCount, thumbnailUrl } of titleDataArray) {
                     // Create title card
                     const titleCard = document.createElement('a');
                     titleCard.href = `view.html?title=${encodeURIComponent(titleName)}`;
