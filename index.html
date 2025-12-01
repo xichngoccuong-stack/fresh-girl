@@ -44,6 +44,7 @@
                 <select id="searchSelect">
                     <option value="">Select title</option>
                 </select>
+                <button id="bulkDeleteBtn" style="display: none; background-color: #dc3545; margin-left: 10px;">Delete Selected</button>
             </div>
             <div id="imagesContainer"></div>
 
@@ -79,19 +80,6 @@
         </div>
     </div>
 
-    <!-- Modal for thumbnail selection -->
-    <div id="thumbnailModal" class="modal">
-        <div class="modal-content">
-            <span class="close" id="closeThumbnailModal">&times;</span>
-            <h3>Set Title Thumbnail</h3>
-            <p id="thumbnailTitleText">Select an image for title: <strong></strong></p>
-            <div id="thumbnailImagesContainer" style="max-height: 400px; overflow-y: auto; margin: 20px 0;"></div>
-            <div style="text-align: center;">
-                <button id="saveThumbnailBtn">Set as Thumbnail</button>
-                <button id="removeThumbnailBtn" style="background-color: #dc3545; margin-left: 10px;">Remove Thumbnail</button>
-            </div>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>

@@ -20,10 +20,10 @@ const uploadPreset = 'fresh-girl';
 const imageInput = document.getElementById('imageInput');
 const uploadBtn = document.getElementById('uploadBtn');
 const clearAllBtn = document.getElementById('clearAllBtn');
+const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
 const imagesContainer = document.getElementById('imagesContainer');
 const uploadSpinner = document.getElementById('uploadSpinner');
 const imagePreview = document.getElementById('imagePreview');
-const titleInput = document.getElementById('titleInput');
 const searchSelect = document.getElementById('searchSelect');
 const openManageModalBtn = document.getElementById('openManageModalBtn');
 const oldTitleSelect = document.getElementById('oldTitleSelect');
@@ -36,14 +36,6 @@ const modalImg = document.getElementById('modalImg');
 const closeImageModal = document.querySelector('#imageModal .close');
 const manageModal = document.getElementById('manageModal');
 const closeManageModal = document.getElementById('closeManageModal');
-
-// Thumbnail modal elements
-const thumbnailModal = document.getElementById('thumbnailModal');
-const closeThumbnailModal = document.getElementById('closeThumbnailModal');
-const thumbnailImagesContainer = document.getElementById('thumbnailImagesContainer');
-const saveThumbnailBtn = document.getElementById('saveThumbnailBtn');
-const removeThumbnailBtn = document.getElementById('removeThumbnailBtn');
-const thumbnailTitleText = document.getElementById('thumbnailTitleText').querySelector('strong');
 
 // Notification elements
 const notification = document.getElementById('notification');
@@ -130,7 +122,6 @@ async function uploadImage() {
     populateTitles();
     // Clear all files after successful upload (without confirmation)
     clearAllFiles(true);
-    // Users can now upload more images without re-selecting files
 
     // Show result
     if (successCount > 0) {
@@ -252,7 +243,7 @@ async function displayImagesForPage(page) {
     for (let i = startIndex; i < endIndex; i++) {
         const { doc: imageDoc, data: imgData } = allImages[i];
 
-        // Get title information for delete function
+        // Get title information for thumbnail function
         const imageTitlesSnapshot = await db.collection('image_titles')
             .where('imageId', '==', imageDoc.id)
             .get();
@@ -264,24 +255,22 @@ async function displayImagesForPage(page) {
 
         const imgWrapper = document.createElement('div');
         imgWrapper.className = 'image-item';
+        imgWrapper.setAttribute('data-image-id', imageDoc.id);
 
         const img = document.createElement('img');
         img.src = imgData.url;
         img.alt = imgData.name;
         img.style.cursor = 'pointer';
-        img.onclick = () => openModal(imgData.url);
+        img.onclick = () => toggleImageSelection(imageDoc.id);
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Del';
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.onclick = () => deleteImage(imageDoc.id, imgData.publicId, titleId);
-
-        // Add set thumbnail button if we have titleId
+        // Centered set thumbnail button
         let setThumbnailBtn = null;
         if (titleId) {
             setThumbnailBtn = document.createElement('button');
             setThumbnailBtn.textContent = 'Set Thumbnail';
             setThumbnailBtn.className = 'set-thumbnail-btn';
+            setThumbnailBtn.style.display = 'block';
+            setThumbnailBtn.style.margin = '10px auto 0';
             setThumbnailBtn.onclick = () => setThumbnailDirectly(imageDoc.id, titleId);
         }
 
@@ -289,7 +278,6 @@ async function displayImagesForPage(page) {
         if (setThumbnailBtn) {
             imgWrapper.appendChild(setThumbnailBtn);
         }
-        imgWrapper.appendChild(deleteBtn);
         imagesContainer.appendChild(imgWrapper);
     }
 
@@ -439,6 +427,9 @@ uploadBtn.addEventListener('click', uploadImage);
 
 // Event listener for clear all button
 clearAllBtn.addEventListener('click', clearAllFiles);
+
+// Event listener for bulk delete button
+bulkDeleteBtn.addEventListener('click', bulkDeleteSelectedImages);
 
 // Function to delete image from Cloudinary and Firebase
 async function deleteImage(docId, publicId, titleId) {
@@ -739,128 +730,14 @@ function hideNotification() {
 // Load titles on page load
 window.addEventListener('load', populateTitles);
 
-// Global variables for thumbnail functionality
-let currentThumbnailTitleId = null;
-let selectedThumbnailImageId = null;
-
 // Pagination variables
 let currentPage = 1;
 const imagesPerPage = 20;
 let totalImages = 0;
 let allImages = []; // Store all images for pagination
 
-// Function to open thumbnail modal for a specific title
-async function openThumbnailModal(titleId, titleName) {
-    currentThumbnailTitleId = titleId;
-    thumbnailTitleText.textContent = titleName;
-    thumbnailModal.style.display = 'block';
-
-    // Load images for this title
-    await loadThumbnailImages(titleId);
-}
-
-// Function to load images for thumbnail selection
-async function loadThumbnailImages(titleId) {
-    thumbnailImagesContainer.innerHTML = '<p>Loading images...</p>';
-
-    try {
-        // Get current thumbnail for this title
-        const currentThumbnailSnapshot = await db.collection('title_thumbnails')
-            .where('titleId', '==', titleId)
-            .get();
-
-        let currentThumbnailImageId = null;
-        if (!currentThumbnailSnapshot.empty) {
-            currentThumbnailImageId = currentThumbnailSnapshot.docs[0].data().imageId;
-        }
-
-        // Get all images for this title
-        const imageTitlesSnapshot = await db.collection('image_titles')
-            .where('titleId', '==', titleId)
-            .get();
-
-        if (imageTitlesSnapshot.empty) {
-            thumbnailImagesContainer.innerHTML = '<p>No images found for this title.</p>';
-            return;
-        }
-
-        thumbnailImagesContainer.innerHTML = '';
-
-        for (const imageTitleDoc of imageTitlesSnapshot.docs) {
-            const imageDoc = await db.collection('images').doc(imageTitleDoc.data().imageId).get();
-
-            if (imageDoc.exists) {
-                const imgData = imageDoc.data();
-
-                const thumbnailItem = document.createElement('div');
-                thumbnailItem.className = 'thumbnail-image-item';
-                if (currentThumbnailImageId === imageDoc.id) {
-                    thumbnailItem.classList.add('selected');
-                }
-
-                const img = document.createElement('img');
-                img.src = imgData.url;
-                img.alt = imgData.name;
-
-                thumbnailItem.appendChild(img);
-                thumbnailItem.onclick = () => selectThumbnailImage(imageDoc.id, thumbnailItem);
-
-                thumbnailImagesContainer.appendChild(thumbnailItem);
-            }
-        }
-
-    } catch (error) {
-        console.error('Error loading thumbnail images:', error);
-        thumbnailImagesContainer.innerHTML = '<p>Error loading images.</p>';
-    }
-}
-
-// Function to select thumbnail image
-function selectThumbnailImage(imageId, element) {
-    // Remove selected class from all items
-    document.querySelectorAll('.thumbnail-image-item').forEach(item => {
-        item.classList.remove('selected');
-    });
-
-    // Add selected class to clicked item
-    element.classList.add('selected');
-    selectedThumbnailImageId = imageId;
-}
-
-// Function to save thumbnail
-async function saveThumbnail() {
-    if (!currentThumbnailTitleId || !selectedThumbnailImageId) {
-        showNotification('Please select an image first.', 'error');
-        return;
-    }
-
-    try {
-        // Remove existing thumbnail for this title
-        const existingThumbnailSnapshot = await db.collection('title_thumbnails')
-            .where('titleId', '==', currentThumbnailTitleId)
-            .get();
-
-        const deletePromises = [];
-        existingThumbnailSnapshot.forEach(doc => {
-            deletePromises.push(doc.ref.delete());
-        });
-        await Promise.all(deletePromises);
-
-        // Add new thumbnail
-        await db.collection('title_thumbnails').add({
-            titleId: currentThumbnailTitleId,
-            imageId: selectedThumbnailImageId,
-            createdAt: new Date()
-        });
-
-        showNotification('Thumbnail set successfully!', 'success');
-        thumbnailModal.style.display = 'none';
-
-    } catch (error) {
-        console.error('Error saving thumbnail:', error);
-        showNotification('Error saving thumbnail.', 'error');
-    }
-}
+// Selected images for bulk delete
+let selectedImages = [];
 
 // Function to set thumbnail directly for a specific image
 async function setThumbnailDirectly(imageId, titleId) {
@@ -893,44 +770,124 @@ async function setThumbnailDirectly(imageId, titleId) {
     }
 }
 
-// Function to remove thumbnail
-async function removeThumbnail() {
-    if (!currentThumbnailTitleId) return;
+// Function to toggle image selection
+function toggleImageSelection(imageId) {
+    const index = selectedImages.indexOf(imageId);
+    const imgWrapper = document.querySelector(`[data-image-id="${imageId}"]`);
+    const imgElement = imgWrapper ? imgWrapper.querySelector('img') : null;
+
+    if (index > -1) {
+        selectedImages.splice(index, 1);
+        // Remove visual selection indicator
+        if (imgElement) {
+            imgElement.style.border = '';
+            imgElement.style.opacity = '';
+        }
+    } else {
+        selectedImages.push(imageId);
+        // Add visual selection indicator
+        if (imgElement) {
+            imgElement.style.border = '3px solid #dc3545';
+            imgElement.style.opacity = '0.7';
+        }
+    }
+
+    // Show/hide bulk delete button based on selection
+    bulkDeleteBtn.style.display = selectedImages.length > 0 ? 'inline-block' : 'none';
+}
+
+// Function to bulk delete selected images
+async function bulkDeleteSelectedImages() {
+    if (selectedImages.length === 0) {
+        showNotification('Please select images to delete.', 'error');
+        return;
+    }
+
+    if (!confirm(`Delete ${selectedImages.length} selected image(s)?`)) return;
+
+    // Show loading overlay
+    loadingOverlay.style.display = 'flex';
 
     try {
-        const existingThumbnailSnapshot = await db.collection('title_thumbnails')
-            .where('titleId', '==', currentThumbnailTitleId)
-            .get();
-
         const deletePromises = [];
-        existingThumbnailSnapshot.forEach(doc => {
-            deletePromises.push(doc.ref.delete());
-        });
+
+        for (const imageId of selectedImages) {
+            // Find the image document
+            const imageDoc = allImages.find(item => item.doc.id === imageId);
+            if (imageDoc) {
+                const { data: imgData } = imageDoc;
+
+                // Get title information for this image
+                const imageTitlesSnapshot = await db.collection('image_titles')
+                    .where('imageId', '==', imageId)
+                    .get();
+
+                let titleId = null;
+                if (!imageTitlesSnapshot.empty) {
+                    titleId = imageTitlesSnapshot.docs[0].data().titleId;
+                }
+
+                // Delete from Cloudinary
+                const apiKey = '131831462832194';
+                const apiSecret = '0aMeGCztYAn09WkM_Y0ekYmLBPw';
+                const timestamp = Math.floor(Date.now() / 1000);
+                const signature = await generateSignature(imgData.publicId, timestamp, apiSecret);
+
+                const formData = new FormData();
+                formData.append('public_id', imgData.publicId);
+                formData.append('api_key', apiKey);
+                formData.append('timestamp', timestamp);
+                formData.append('signature', signature);
+
+                const cloudinaryResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (cloudinaryResponse.ok) {
+                    // Delete from Firebase
+                    deletePromises.push(db.collection('images').doc(imageId).delete());
+
+                    // Delete image-title relationships
+                    if (titleId) {
+                        const imageTitleSnapshot = await db.collection('image_titles')
+                            .where('imageId', '==', imageId)
+                            .where('titleId', '==', titleId)
+                            .get();
+
+                        imageTitleSnapshot.forEach(doc => {
+                            deletePromises.push(doc.ref.delete());
+                        });
+                    }
+                }
+            }
+        }
+
         await Promise.all(deletePromises);
 
-        showNotification('Thumbnail removed successfully!', 'success');
-        thumbnailModal.style.display = 'none';
+        showNotification(`${selectedImages.length} image(s) deleted successfully!`, 'success');
+
+        // Clear selection and refresh display
+        selectedImages = [];
+        bulkDeleteBtn.style.display = 'none';
+
+        // Refresh current view
+        const currentFilter = searchSelect.value;
+        if (currentFilter) {
+            loadImages(currentFilter);
+        } else {
+            imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
+        }
 
     } catch (error) {
-        console.error('Error removing thumbnail:', error);
-        showNotification('Error removing thumbnail.', 'error');
+        console.error('Error deleting images:', error);
+        showNotification('Error deleting images.', 'error');
+    } finally {
+        // Hide loading overlay
+        loadingOverlay.style.display = 'none';
     }
 }
 
 // Pagination event listeners
 document.getElementById('prevPageBtn').addEventListener('click', goToPrevPage);
 document.getElementById('nextPageBtn').addEventListener('click', goToNextPage);
-
-// Event listeners for thumbnail modal
-closeThumbnailModal.addEventListener('click', () => {
-    thumbnailModal.style.display = 'none';
-});
-
-window.addEventListener('click', (e) => {
-    if (e.target === thumbnailModal) {
-        thumbnailModal.style.display = 'none';
-    }
-});
-
-saveThumbnailBtn.addEventListener('click', saveThumbnail);
-removeThumbnailBtn.addEventListener('click', removeThumbnail);
