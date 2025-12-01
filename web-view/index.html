@@ -38,16 +38,53 @@
             color: #ffffff;
         }
 
+        .title-card:hover h3 {
+            animation: glow 1s ease-in-out infinite alternate;
+            transform: scale(1.05);
+        }
+
+        .title-card:hover h3::before {
+            animation: sparkle 1s ease-in-out infinite;
+            transform: translateY(-50%) scale(1.2);
+        }
+
         .title-card h3 {
             margin: 0 0 10px 0;
-            color: #007bff;
+            background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff6347);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            display: inline-block;
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        .title-card h3::before {
+            content: "📸 ";
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 16px;
+            animation: sparkle 2s ease-in-out infinite;
         }
 
         .title-card p {
             margin: 0;
-            color: #cccccc;
+            color: #ff69b4;
             font-size: 14px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .title-card p::before {
+            content: "🖼️ ";
+            font-size: 12px;
         }
 
         .loading-text {
@@ -136,8 +173,17 @@
                 font-size: 16px;
             }
 
+            .title-card h3::before {
+                font-size: 14px;
+                left: -20px;
+            }
+
             .title-card p {
                 font-size: 12px;
+            }
+
+            .title-card p::before {
+                font-size: 10px;
             }
 
             .title-card img {
@@ -178,8 +224,17 @@
                 font-size: 14px;
             }
 
+            .title-card h3::before {
+                font-size: 12px;
+                left: -18px;
+            }
+
             .title-card p {
                 font-size: 11px;
+            }
+
+            .title-card p::before {
+                font-size: 9px;
             }
 
             .title-card img {
