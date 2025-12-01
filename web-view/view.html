@@ -37,6 +37,44 @@
             from { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 10px rgba(255,105,180,0.5); }
             to { text-shadow: 2px 2px 4px rgba(0,0,0,0.3), 0 0 20px rgba(255,20,147,0.8), 0 0 30px rgba(255,20,147,0.6); }
         }
+
+        /* Mobile responsive styles */
+        @media (max-width: 768px) {
+            .gallery-container {
+                margin-top: 10px;
+            }
+
+            .gallery-container > div:first-child {
+                padding: 6px !important;
+            }
+
+            .gallery-container > div:first-child img {
+                height: 50px !important;
+                width: auto !important;
+                margin-right: 8px !important;
+            }
+
+            .gallery-container > div:first-child h1 {
+                font-size: 1.8em !important;
+                margin: 5px 0 !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gallery-container > div:first-child {
+                padding: 5px !important;
+            }
+
+            .gallery-container > div:first-child img {
+                height: 45px !important;
+                margin-right: 6px !important;
+            }
+
+            .gallery-container > div:first-child h1 {
+                font-size: 1.6em !important;
+                margin: 4px 0 !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -48,7 +86,7 @@
 
             <div class="gallery-container" style="padding-bottom: 80px;">
 
-            <div style="display: flex; align-items: center; justify-content: center; margin: 0; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 9px; backdrop-filter: blur(10px); border: 3px solid transparent; border-radius: 15px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; margin: 0; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 8px; backdrop-filter: blur(10px); border: 3px solid transparent; border-radius: 15px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite; margin-bottom: 20px;">
 
                 <div style="display: flex; align-items: center; justify-content: center;">
                     <img src="logo.jpg" alt="Logo" style="height: 85px; width: auto; margin-right: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
