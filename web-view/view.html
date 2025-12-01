@@ -86,7 +86,7 @@
 
             <div class="gallery-container" style="padding-bottom: 80px;">
 
-            <div style="display: flex; align-items: center; justify-content: center; margin: 0; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 8px; backdrop-filter: blur(10px); border: 3px solid transparent; border-radius: 15px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; justify-content: center; margin: 0; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); padding: 8px; backdrop-filter: blur(10px); border-radius: 15px; box-shadow: 0 0 20px rgba(255, 105, 180, 0.3), 0 0 40px rgba(255, 20, 147, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1); animation: borderGlow 3s ease-in-out infinite; margin-bottom: 20px;">
 
                 <div style="display: flex; align-items: center; justify-content: center;">
                     <img src="logo.jpg" alt="Logo" style="height: 85px; width: auto; margin-right: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
@@ -204,19 +204,27 @@
                 if (imageTitlesSnapshot.empty) {
                     imagesContainer.innerHTML = '<p class="no-images">No images found for this title.</p>';
                     const albumSubtitle = document.getElementById('albumSubtitle');
-                    albumSubtitle.textContent = `📸 ${titleName} - 0 images 📸`;
+                    albumSubtitle.textContent = `${titleName} (0 ảnh)`;
                     return;
                 }
 
                 // Update album subtitle with total count
                 const albumSubtitle = document.getElementById('albumSubtitle');
-                albumSubtitle.textContent = `📸 ${titleName} - ${imageTitlesSnapshot.size} image${imageTitlesSnapshot.size !== 1 ? 's' : ''} 📸`;
+                albumSubtitle.textContent = `${titleName} (${imageTitlesSnapshot.size} ảnh)`;
+
+                // Sort images by createdAt (newest at end)
+                const sortedImageTitles = imageTitlesSnapshot.docs.sort((a, b) => {
+                    const dateA = a.data().createdAt?.toDate?.() || new Date(a.data().createdAt);
+                    const dateB = b.data().createdAt?.toDate?.() || new Date(b.data().createdAt);
+                    return dateA - dateB; // Oldest first, newest at end
+                });
+
+                // Store sorted image titles for pagination
+                loadedImages = {};
+                loadedImages.all = sortedImageTitles;
 
                 // Store total images count
-                totalImages = imageTitlesSnapshot.size;
-
-                // Reset loaded images cache for new title
-                loadedImages = {};
+                totalImages = sortedImageTitles.length;
 
                 // Reset to first page when loading new images
                 currentPage = 1;
@@ -233,7 +241,7 @@
 
         // Function to load images for a specific page
         async function loadImagesForPage(page) {
-            if (!currentTitleId) return;
+            if (!currentTitleId || !loadedImages.all) return;
 
             // Check if images for this page are already loaded
             if (loadedImages[page]) {
@@ -244,7 +252,7 @@
             const imagesContainer = document.getElementById('imagesContainer');
 
             try {
-                // Show loading spinner while fetching
+                // Show loading spinner while processing
                 imagesContainer.innerHTML = `
                     <div class="loading-container">
                         <div class="pink-spinner"></div>
@@ -252,28 +260,15 @@
                     </div>
                 `;
 
-                // Get images for this title with pagination
-                const imageTitlesSnapshot = await db.collection('image_titles')
-                    .where('titleId', '==', currentTitleId)
-                    .limit(imagesPerPage * page) // Get enough for current page
-                    .get();
+                // Get the images for current page from pre-sorted data
+                const startIndex = (page - 1) * imagesPerPage;
+                const endIndex = Math.min(startIndex + imagesPerPage, loadedImages.all.length);
+                const pageImageDocs = loadedImages.all.slice(startIndex, endIndex);
 
-                if (imageTitlesSnapshot.empty) {
+                if (pageImageDocs.length === 0) {
                     imagesContainer.innerHTML = '<p class="no-images">No images found for this page.</p>';
                     return;
                 }
-
-                // Sort documents by createdAt (oldest first so newest appears at end)
-                const sortedDocs = imageTitlesSnapshot.docs.sort((a, b) => {
-                    const dateA = a.data().createdAt?.toDate?.() || new Date(a.data().createdAt);
-                    const dateB = b.data().createdAt?.toDate?.() || new Date(b.data().createdAt);
-                    return dateA - dateB;
-                });
-
-                // Get the images for current page only
-                const startIndex = (page - 1) * imagesPerPage;
-                const endIndex = Math.min(startIndex + imagesPerPage, sortedDocs.length);
-                const pageImageDocs = sortedDocs.slice(startIndex, endIndex);
 
                 // Load image data for current page
                 const pageImages = [];

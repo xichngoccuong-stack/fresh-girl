@@ -45,7 +45,6 @@ body, html {
 
 .image-card {
     background: #1a1a1a;
-    border: 1px solid #333;
     border-radius: 8px;
     overflow: hidden;
     transition: transform 0.2s;
@@ -60,7 +59,7 @@ body, html {
 }
 
 .image-card img {
-    max-width: 90vw;
+    max-width: 90%;
     width: auto;
     height: auto;
     display: block;
@@ -70,13 +69,13 @@ body, html {
 
 @media (max-width: 768px) {
     .image-card img {
-        max-width: 95vw;
+        max-width: 100%;
     }
 }
 
 @media (max-width: 480px) {
     .image-card img {
-        max-width: 98vw;
+        max-width: 100%;
     }
 }
 
