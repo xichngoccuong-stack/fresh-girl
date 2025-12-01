@@ -19,6 +19,7 @@ const uploadPreset = 'fresh-girl';
 // DOM elements
 const imageInput = document.getElementById('imageInput');
 const uploadBtn = document.getElementById('uploadBtn');
+const clearAllBtn = document.getElementById('clearAllBtn');
 const imagesContainer = document.getElementById('imagesContainer');
 const uploadSpinner = document.getElementById('uploadSpinner');
 const imagePreview = document.getElementById('imagePreview');
@@ -53,7 +54,7 @@ const loadingOverlay = document.getElementById('loadingOverlay');
 
 // Function to upload image to Cloudinary and save metadata to Firebase
 async function uploadImage() {
-    const files = imageInput.files;
+    const files = accumulatedFiles;
     const selectedTitle = titleSelect.value;
 
     if (files.length === 0) {
@@ -127,10 +128,9 @@ async function uploadImage() {
     loadImages(selectedTitle);
     // Update titles list
     populateTitles();
-    // Clear the input and preview (keep title selection)
-    imageInput.value = '';
-    imagePreview.innerHTML = '';
-    uploadBtn.style.display = 'none';
+    // Clear all files after successful upload (without confirmation)
+    clearAllFiles(true);
+    // Users can now upload more images without re-selecting files
 
     // Show result
     if (successCount > 0) {
@@ -282,14 +282,7 @@ async function displayImagesForPage(page) {
             setThumbnailBtn = document.createElement('button');
             setThumbnailBtn.textContent = 'Set Thumbnail';
             setThumbnailBtn.className = 'set-thumbnail-btn';
-            setThumbnailBtn.onclick = async () => {
-                // Get title name
-                const titleDoc = await db.collection('titles').doc(titleId).get();
-                if (titleDoc.exists) {
-                    const titleName = titleDoc.data().name;
-                    openThumbnailModal(titleId, titleName);
-                }
-            };
+            setThumbnailBtn.onclick = () => setThumbnailDirectly(imageDoc.id, titleId);
         }
 
         imgWrapper.appendChild(img);
@@ -388,19 +381,17 @@ function displayPreviews(files) {
         reader.readAsDataURL(file);
     });
     uploadBtn.style.display = files.length > 0 ? 'inline-block' : 'none';
+    clearAllBtn.style.display = files.length > 0 ? 'inline-block' : 'none';
 }
 
 // Function to remove a preview item and update the file input
 function removePreviewItem(indexToRemove) {
-    const dt = new DataTransfer();
-    const files = Array.from(imageInput.files);
+    // Remove from accumulated files array
+    accumulatedFiles.splice(indexToRemove, 1);
 
-    // Add all files except the one to remove
-    files.forEach((file, index) => {
-        if (index !== indexToRemove) {
-            dt.items.add(file);
-        }
-    });
+    // Create a new DataTransfer with remaining files
+    const dt = new DataTransfer();
+    accumulatedFiles.forEach(file => dt.items.add(file));
 
     // Update the file input with the new file list
     imageInput.files = dt.files;
@@ -409,13 +400,45 @@ function removePreviewItem(indexToRemove) {
     displayPreviews(imageInput.files);
 }
 
+// Function to clear all selected files and preview
+function clearAllFiles(autoClear = false) {
+    if (autoClear || confirm('Clear all selected images?')) {
+        // Clear accumulated files
+        accumulatedFiles = [];
+        // Clear the file input
+        imageInput.value = '';
+        // Clear the preview
+        imagePreview.innerHTML = '';
+        // Hide buttons
+        uploadBtn.style.display = 'none';
+        clearAllBtn.style.display = 'none';
+    }
+}
+
+// Global variable to store accumulated files
+let accumulatedFiles = [];
+
 // Event listener for file input change
 imageInput.addEventListener('change', (e) => {
-    displayPreviews(e.target.files);
+    const newFiles = Array.from(e.target.files);
+
+    // Combine new files with accumulated files
+    accumulatedFiles = accumulatedFiles.concat(newFiles);
+
+    // Create a new DataTransfer to update the input with all files
+    const dt = new DataTransfer();
+    accumulatedFiles.forEach(file => dt.items.add(file));
+    imageInput.files = dt.files;
+
+    // Display all accumulated files
+    displayPreviews(imageInput.files);
 });
 
 // Event listener for upload button
 uploadBtn.addEventListener('click', uploadImage);
+
+// Event listener for clear all button
+clearAllBtn.addEventListener('click', clearAllFiles);
 
 // Function to delete image from Cloudinary and Firebase
 async function deleteImage(docId, publicId, titleId) {
@@ -836,6 +859,37 @@ async function saveThumbnail() {
     } catch (error) {
         console.error('Error saving thumbnail:', error);
         showNotification('Error saving thumbnail.', 'error');
+    }
+}
+
+// Function to set thumbnail directly for a specific image
+async function setThumbnailDirectly(imageId, titleId) {
+    if (!confirm('Set this image as the thumbnail for this title?')) return;
+
+    try {
+        // Remove existing thumbnail for this title
+        const existingThumbnailSnapshot = await db.collection('title_thumbnails')
+            .where('titleId', '==', titleId)
+            .get();
+
+        const deletePromises = [];
+        existingThumbnailSnapshot.forEach(doc => {
+            deletePromises.push(doc.ref.delete());
+        });
+        await Promise.all(deletePromises);
+
+        // Add new thumbnail
+        await db.collection('title_thumbnails').add({
+            titleId: titleId,
+            imageId: imageId,
+            createdAt: new Date()
+        });
+
+        showNotification('Thumbnail set successfully!', 'success');
+
+    } catch (error) {
+        console.error('Error setting thumbnail:', error);
+        showNotification('Error setting thumbnail.', 'error');
     }
 }
 
