@@ -169,7 +169,6 @@ async function loadImages(query = null) {
                 }
 
                 imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
-                console.log(`Found ${imageIds.length} images for title "${query}"`);
 
                 // Instead of using 'in' query with limit, we'll load all images and filter client-side
                 // This allows us to show all images for a title without Firestore limitations
@@ -187,7 +186,6 @@ async function loadImages(query = null) {
         }
 
         const imagesSnapshot = await imageQuery.get();
-        console.log(`Firebase returned ${imagesSnapshot.docs.length} documents`);
 
         if (imagesSnapshot.empty) {
             imagesContainer.innerHTML = query ? '<p>No images found with this title.</p>' : '<p>No images uploaded yet.</p>';
@@ -197,7 +195,6 @@ async function loadImages(query = null) {
 
         // Collect all valid images first, then sort them by uploadedAt
         const validImages = [];
-        console.log(`Processing ${imagesSnapshot.docs.length} total images from Firebase`);
 
         for (const imageDoc of imagesSnapshot.docs) {
             const imgData = imageDoc.data();
@@ -205,7 +202,6 @@ async function loadImages(query = null) {
             // For filtered queries, check if this image belongs to the selected title
             if (query) {
                 const isImageInTitle = imageIds.includes(imageDoc.id);
-                console.log(`Image ${imageDoc.id}: ${isImageInTitle ? 'INCLUDED' : 'EXCLUDED'} for title "${query}"`);
                 if (!isImageInTitle) {
                     continue; // Skip images that don't belong to the selected title
                 }
@@ -213,8 +209,6 @@ async function loadImages(query = null) {
 
             validImages.push({ doc: imageDoc, data: imgData });
         }
-
-        console.log(`After filtering: ${validImages.length} valid images for display`);
 
         // Sort by uploadedAt descending (newest first)
         validImages.sort((a, b) => {
@@ -226,13 +220,11 @@ async function loadImages(query = null) {
         // Store all images for pagination
         allImages = validImages;
         totalImages = validImages.length;
-        console.log(`Total images loaded: ${totalImages}, images per page: ${imagesPerPage}`);
 
         // Reset to first page when loading new images
         currentPage = 1;
 
         // Display current page
-        console.log('Calling displayImagesForPage with currentPage:', currentPage);
         displayImagesForPage(currentPage);
 
     } catch (error) {
@@ -244,11 +236,9 @@ async function loadImages(query = null) {
 
 // Function to display images for a specific page
 async function displayImagesForPage(page) {
-    console.log(`displayImagesForPage called with page: ${page}, allImages.length: ${allImages.length}`);
     imagesContainer.innerHTML = ''; // Clear previous content
 
     if (allImages.length === 0) {
-        console.log('No images to display');
         imagesContainer.innerHTML = '<p>No images to display.</p>';
         hidePagination();
         return;
@@ -257,8 +247,6 @@ async function displayImagesForPage(page) {
     const totalPages = Math.ceil(totalImages / imagesPerPage);
     const startIndex = (page - 1) * imagesPerPage;
     const endIndex = Math.min(startIndex + imagesPerPage, totalImages);
-
-    console.log(`Displaying page ${page} of ${totalPages}: images ${startIndex + 1} to ${endIndex} of ${totalImages}`);
 
     // Display images for current page
     for (let i = startIndex; i < endIndex; i++) {
@@ -318,14 +306,12 @@ async function displayImagesForPage(page) {
 
 // Function to update pagination UI
 function updatePaginationUI(currentPage, totalPages) {
-    console.log(`Updating pagination UI: page ${currentPage} of ${totalPages}, total images: ${totalImages}`);
     const paginationContainer = document.getElementById('paginationContainer');
     const pageInfo = document.getElementById('pageInfo');
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
 
     if (totalPages <= 1) {
-        console.log('Hiding pagination - only 1 page or less');
         hidePagination();
         return;
     }
@@ -338,7 +324,6 @@ function updatePaginationUI(currentPage, totalPages) {
     nextBtn.disabled = currentPage === totalPages;
 
     // Show pagination
-    console.log('Showing pagination container');
     paginationContainer.style.display = 'flex';
 }
 
@@ -352,26 +337,18 @@ function hidePagination() {
 
 // Function to go to previous page
 function goToPrevPage() {
-    console.log('Previous button clicked, current page:', currentPage);
     if (currentPage > 1) {
         currentPage--;
-        console.log('Going to previous page:', currentPage);
         displayImagesForPage(currentPage);
-    } else {
-        console.log('Already on first page');
     }
 }
 
 // Function to go to next page
 function goToNextPage() {
     const totalPages = Math.ceil(totalImages / imagesPerPage);
-    console.log('Next button clicked, current page:', currentPage, 'total pages:', totalPages);
     if (currentPage < totalPages) {
         currentPage++;
-        console.log('Going to next page:', currentPage);
         displayImagesForPage(currentPage);
-    } else {
-        console.log('Already on last page');
     }
 }
 

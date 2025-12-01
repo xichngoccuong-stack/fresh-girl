@@ -156,13 +156,11 @@
                 // Store all images for pagination
                 allImages = validImages;
                 totalImages = validImages.length;
-                console.log(`Total images loaded: ${totalImages}, images per page: ${imagesPerPage}`);
 
                 // Reset to first page when loading new images
                 currentPage = 1;
 
                 // Display current page
-                console.log('Calling displayImagesForPage with currentPage:', currentPage);
                 displayImagesForPage(currentPage);
 
             } catch (error) {
@@ -174,12 +172,10 @@
 
         // Function to display images for a specific page
         function displayImagesForPage(page) {
-            console.log(`displayImagesForPage called with page: ${page}, allImages.length: ${allImages.length}`);
             const imagesContainer = document.getElementById('imagesContainer');
             imagesContainer.innerHTML = ''; // Clear previous content
 
             if (allImages.length === 0) {
-                console.log('No images to display');
                 imagesContainer.innerHTML = '<p class="no-images">No images to display.</p>';
                 hidePagination();
                 return;
@@ -188,8 +184,6 @@
             const totalPages = Math.ceil(totalImages / imagesPerPage);
             const startIndex = (page - 1) * imagesPerPage;
             const endIndex = Math.min(startIndex + imagesPerPage, totalImages);
-
-            console.log(`Displaying page ${page} of ${totalPages}: images ${startIndex + 1} to ${endIndex} of ${totalImages}`);
 
             // Display images for current page
             for (let i = startIndex; i < endIndex; i++) {
@@ -213,14 +207,12 @@
 
         // Function to update pagination UI
         function updatePaginationUI(currentPage, totalPages) {
-            console.log(`Updating pagination UI: page ${currentPage} of ${totalPages}, total images: ${totalImages}`);
             const paginationContainer = document.getElementById('paginationContainer');
             const pageInfo = document.getElementById('pageInfo');
             const prevBtn = document.getElementById('prevPageBtn');
             const nextBtn = document.getElementById('nextPageBtn');
 
             if (totalPages <= 1) {
-                console.log('Hiding pagination - only 1 page or less');
                 hidePagination();
                 return;
             }
@@ -233,7 +225,6 @@
             nextBtn.disabled = currentPage === totalPages;
 
             // Show pagination
-            console.log('Showing pagination container');
             paginationContainer.style.display = 'block';
         }
 
@@ -247,26 +238,18 @@
 
         // Function to go to previous page
         function goToPrevPage() {
-            console.log('Previous button clicked, current page:', currentPage);
             if (currentPage > 1) {
                 currentPage--;
-                console.log('Going to previous page:', currentPage);
                 displayImagesForPage(currentPage);
-            } else {
-                console.log('Already on first page');
             }
         }
 
         // Function to go to next page
         function goToNextPage() {
             const totalPages = Math.ceil(totalImages / imagesPerPage);
-            console.log('Next button clicked, current page:', currentPage, 'total pages:', totalPages);
             if (currentPage < totalPages) {
                 currentPage++;
-                console.log('Going to next page:', currentPage);
                 displayImagesForPage(currentPage);
-            } else {
-                console.log('Already on last page');
             }
         }
 
