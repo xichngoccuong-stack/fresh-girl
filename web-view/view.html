@@ -58,6 +58,28 @@
                 font-size: 1.8em !important;
                 margin: 5px 0 !important;
             }
+
+            /* Album subtitle responsive */
+            #albumSubtitle {
+                font-size: 0.9em !important;
+                padding: 8px 16px !important;
+            }
+
+            /* Pagination responsive */
+            #paginationContainer {
+                gap: 10px !important;
+                padding: 15px !important;
+            }
+
+            .pagination-btn {
+                padding: 8px 16px !important;
+                font-size: 13px !important;
+            }
+
+            .page-info {
+                font-size: 14px !important;
+                margin: 0 10px !important;
+            }
         }
 
         @media (max-width: 480px) {
@@ -73,6 +95,30 @@
             .gallery-container > div:first-child h1 {
                 font-size: 1.6em !important;
                 margin: 4px 0 !important;
+            }
+
+            /* Album subtitle responsive for small mobile */
+            #albumSubtitle {
+                font-size: 0.8em !important;
+                padding: 6px 12px !important;
+            }
+
+            /* Pagination responsive for small mobile */
+            #paginationContainer {
+                gap: 8px !important;
+                padding: 12px !important;
+                margin-top: 20px !important;
+                margin-bottom: 15px !important;
+            }
+
+            .pagination-btn {
+                padding: 6px 12px !important;
+                font-size: 12px !important;
+            }
+
+            .page-info {
+                font-size: 13px !important;
+                margin: 0 8px !important;
             }
         }
     </style>
@@ -342,7 +388,7 @@
             }
 
             // Update page info
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${totalImages} images)`;
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
 
             // Enable/disable buttons
             firstBtn.disabled = currentPage === 1;
