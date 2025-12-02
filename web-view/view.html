@@ -403,10 +403,28 @@
                     img.src = imgData.url;
                     img.alt = imgData.name;
                     img.loading = 'lazy'; // Lazy loading for better performance
-                    img.style.width = '100%';
                     img.style.height = 'auto';
                     img.style.borderRadius = '8px';
                     img.style.objectFit = 'cover';
+
+                    // Prevent small images from being enlarged beyond their natural size
+                    img.onload = function() {
+                        const screenWidth = window.innerWidth;
+                        const imageNaturalWidth = this.naturalWidth;
+
+                        // If image is smaller than 50% of screen width, don't enlarge it
+                        if (imageNaturalWidth < screenWidth * 0.5) {
+                            this.style.width = imageNaturalWidth + 'px';
+                            this.style.maxWidth = '100%'; // Still responsive on small screens
+                        } else {
+                            this.style.width = '100%';
+                        }
+                    };
+
+                    // Fallback for browsers that don't support naturalWidth immediately
+                    if (img.complete) {
+                        img.onload();
+                    }
 
                     mediaCard.appendChild(img);
                 }
