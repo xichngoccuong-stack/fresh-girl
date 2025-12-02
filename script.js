@@ -20,12 +20,15 @@ const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
 const imagesContainer = document.getElementById('imagesContainer');
 const uploadSpinner = document.getElementById('uploadSpinner');
 const imagePreview = document.getElementById('imagePreview');
-const searchSelect = document.getElementById('searchSelect');
+const searchInput = document.getElementById('searchInput');
+const suggestions = document.getElementById('suggestions');
 const openManageModalBtn = document.getElementById('openManageModalBtn');
-const oldTitleSelect = document.getElementById('oldTitleSelect');
+const oldTitleInput = document.getElementById('oldTitleInput');
+const oldTitleSuggestions = document.getElementById('oldTitleSuggestions');
 const newTitleInput = document.getElementById('newTitleInput');
 const updateTitleBtn = document.getElementById('updateTitleBtn');
-const titleSelect = document.getElementById('titleSelect');
+const titleInput = document.getElementById('titleInput');
+const titleSuggestions = document.getElementById('titleSuggestions');
 const createTitleBtn = document.getElementById('createTitleBtn');
 const imageModal = document.getElementById('imageModal');
 const modalImg = document.getElementById('modalImg');
@@ -38,15 +41,21 @@ const notificationMessage = document.getElementById('notificationMessage');
 
 const loadingOverlay = document.getElementById('loadingOverlay');
 
+// Global variables for search functionality
+let allTitles = [];
+let currentSuggestionIndex = -1;
+let currentOldTitleSuggestionIndex = -1;
+let currentTitleSuggestionIndex = -1;
+
 async function uploadImage() {
     const files = accumulatedFiles;
-    const selectedTitle = titleSelect.value;
+    const selectedTitle = titleInput.value.trim();
     if (files.length === 0) {
         showNotification('Please select at least one image or video.', 'error');
         return;
     }
     if (!selectedTitle) {
-        showNotification('Please select a title for the images/videos.', 'error');
+        showNotification('Please enter a title for the images/videos.', 'error');
         return;
     }
     loadingOverlay.style.display = 'flex';
@@ -108,76 +117,12 @@ async function uploadImage() {
     loadingOverlay.style.display = 'none';
     uploadBtn.disabled = false;
     uploadBtn.textContent = 'Upload Files';
+
+    // Clear title input after successful upload
+    titleInput.value = '';
 }
 
 
-async function loadImages(query = null) {
-    imagesContainer.innerHTML = '<p>Loading images...</p>';
-    try {
-        let imageQuery;
-        let imageIds = [];
-
-        if (query) {
-            const titleSnapshot = await db.collection('titles').where('name', '==', query).get();
-            if (!titleSnapshot.empty) {
-                const titleDoc = titleSnapshot.docs[0];
-                const imageTitlesSnapshot = await db.collection('image_titles')
-                    .where('titleId', '==', titleDoc.id)
-                    .get();
-                if (imageTitlesSnapshot.empty) {
-                    imagesContainer.innerHTML = '<p>No images found with this title.</p>';
-                    hidePagination();
-                    return;
-                }
-                imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
-                imageQuery = db.collection('images').orderBy('uploadedAt', 'desc');
-            } else {
-                imagesContainer.innerHTML = '<p>No images found with this title.</p>';
-                hidePagination();
-                return;
-            }
-        } else {
-            imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
-            hidePagination();
-            return;
-        }
-        const imagesSnapshot = await imageQuery.get();
-
-        if (imagesSnapshot.empty) {
-            imagesContainer.innerHTML = query ? '<p>No images found with this title.</p>' : '<p>No images uploaded yet.</p>';
-            hidePagination();
-            return;
-        }
-        const validImages = [];
-
-        for (const imageDoc of imagesSnapshot.docs) {
-            const imgData = imageDoc.data();
-
-            if (query) {
-                const isImageInTitle = imageIds.includes(imageDoc.id);
-                if (!isImageInTitle) {
-                    continue;
-                }
-            }
-            validImages.push({ doc: imageDoc, data: imgData });
-        }
-
-        validImages.sort((a, b) => {
-            const dateA = a.data.uploadedAt?.toDate?.() || new Date(a.data.uploadedAt);
-            const dateB = b.data.uploadedAt?.toDate?.() || new Date(b.data.uploadedAt);
-            return dateB - dateA;
-        });
-        allImages = validImages;
-        totalImages = validImages.length;
-        currentPage = 1;
-        displayImagesForPage(currentPage);
-
-    } catch (error) {
-        console.error('Error loading images:', error);
-        imagesContainer.innerHTML = '<p>Error loading images.</p>';
-        hidePagination();
-    }
-}
 
 
 async function displayImagesForPage(page) {
@@ -488,9 +433,10 @@ async function populateTitles() {
     try {
         const snapshot = await db.collection('titles').orderBy('createdAt', 'desc').get();
 
-        searchSelect.innerHTML = '<option value="">Select title</option>';
-        oldTitleSelect.innerHTML = '<option value="">Select old title</option>';
-        titleSelect.innerHTML = '<option value="">Select title for upload</option>';
+        // Clear existing options - titleSelect is now replaced with titleInput
+
+        // Clear titles array
+        allTitles = [];
 
         if (snapshot.empty) {
             return;
@@ -500,20 +446,10 @@ async function populateTitles() {
             const titleData = doc.data();
             const titleName = titleData.name;
 
-            const option1 = document.createElement('option');
-            option1.value = titleName;
-            option1.textContent = titleName;
-            searchSelect.appendChild(option1);
+            // Store in global array for search functionality
+            allTitles.push(titleName);
 
-            const option2 = document.createElement('option');
-            option2.value = titleName;
-            option2.textContent = titleName;
-            oldTitleSelect.appendChild(option2);
-
-            const option3 = document.createElement('option');
-            option3.value = titleName;
-            option3.textContent = titleName;
-            titleSelect.appendChild(option3);
+            // titleSelect is now replaced with titleInput - no need to populate
         });
 
     } catch (error) {
@@ -523,13 +459,374 @@ async function populateTitles() {
 }
 
 
-searchSelect.addEventListener('change', () => {
-    const query = searchSelect.value;
-    if (query) {
-        loadImages(query);
+// Search input functionality
+function showSuggestions(query) {
+    suggestions.innerHTML = '';
+
+    let filteredTitles;
+    if (!query.trim()) {
+        // Show all titles when no query
+        filteredTitles = allTitles.slice(0, 10); // Limit to 10 items
     } else {
-        imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
+        // Filter titles based on query
+        filteredTitles = allTitles.filter(title =>
+            title.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 10); // Limit to 10 suggestions
     }
+
+    if (filteredTitles.length === 0) {
+        suggestions.style.display = 'none';
+        return;
+    }
+
+    filteredTitles.forEach((title, index) => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+
+        if (query.trim()) {
+            // Highlight matching text
+            const regex = new RegExp(`(${query})`, 'gi');
+            const highlightedText = title.replace(regex, '<strong>$1</strong>');
+            suggestionItem.innerHTML = highlightedText;
+        } else {
+            suggestionItem.textContent = title;
+        }
+
+        suggestionItem.onclick = () => selectSuggestion(title);
+        suggestions.appendChild(suggestionItem);
+    });
+
+    suggestions.style.display = 'block';
+    currentSuggestionIndex = -1;
+}
+
+function selectSuggestion(title) {
+    searchInput.value = title;
+    suggestions.style.display = 'none';
+    loadImages(title);
+}
+
+async function loadImages(query = null) {
+    imagesContainer.innerHTML = '<p>Loading images...</p>';
+    try {
+        let imageQuery;
+        let imageIds = [];
+
+        if (query) {
+            // Check if title exists
+            const titleSnapshot = await db.collection('titles').where('name', '==', query).get();
+            if (titleSnapshot.empty) {
+                imagesContainer.innerHTML = `<p>No title found with name "${query}". Please check the spelling or create this title first.</p>`;
+                hidePagination();
+                return;
+            }
+
+            const titleDoc = titleSnapshot.docs[0];
+            const imageTitlesSnapshot = await db.collection('image_titles')
+                .where('titleId', '==', titleDoc.id)
+                .get();
+            if (imageTitlesSnapshot.empty) {
+                imagesContainer.innerHTML = '<p>No images found with this title.</p>';
+                hidePagination();
+                return;
+            }
+            imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
+            imageQuery = db.collection('images').orderBy('uploadedAt', 'desc');
+        } else {
+            imagesContainer.innerHTML = '<p>Please enter a title to view images.</p>';
+            hidePagination();
+            return;
+        }
+        const imagesSnapshot = await imageQuery.get();
+
+        if (imagesSnapshot.empty) {
+            imagesContainer.innerHTML = query ? '<p>No images found with this title.</p>' : '<p>No images uploaded yet.</p>';
+            hidePagination();
+            return;
+        }
+        const validImages = [];
+
+        for (const imageDoc of imagesSnapshot.docs) {
+            const imgData = imageDoc.data();
+
+            if (query) {
+                const isImageInTitle = imageIds.includes(imageDoc.id);
+                if (!isImageInTitle) {
+                    continue;
+                }
+            }
+            validImages.push({ doc: imageDoc, data: imgData });
+        }
+
+        validImages.sort((a, b) => {
+            const dateA = a.data.uploadedAt?.toDate?.() || new Date(a.data.uploadedAt);
+            const dateB = b.data.uploadedAt?.toDate?.() || new Date(b.data.uploadedAt);
+            return dateB - dateA;
+        });
+        allImages = validImages;
+        totalImages = validImages.length;
+        currentPage = 1;
+        displayImagesForPage(currentPage);
+
+    } catch (error) {
+        console.error('Error loading images:', error);
+        imagesContainer.innerHTML = '<p>Error loading images.</p>';
+        hidePagination();
+    }
+}
+
+function hideSuggestions() {
+    suggestions.style.display = 'none';
+    currentSuggestionIndex = -1;
+}
+
+function highlightSuggestion(index) {
+    const items = suggestions.querySelectorAll('.suggestion-item');
+    items.forEach((item, i) => {
+        if (i === index) {
+            item.classList.add('highlighted');
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
+}
+
+// Search input event listeners
+searchInput.addEventListener('input', (e) => {
+    showSuggestions(e.target.value);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+    const items = suggestions.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentSuggestionIndex = Math.min(currentSuggestionIndex + 1, items.length - 1);
+        highlightSuggestion(currentSuggestionIndex);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentSuggestionIndex = Math.max(currentSuggestionIndex - 1, -1);
+        highlightSuggestion(currentSuggestionIndex);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentSuggestionIndex >= 0 && items[currentSuggestionIndex]) {
+            selectSuggestion(items[currentSuggestionIndex].textContent);
+        } else if (searchInput.value.trim()) {
+            loadImages(searchInput.value.trim());
+            hideSuggestions();
+        }
+    } else if (e.key === 'Escape') {
+        hideSuggestions();
+    }
+});
+
+searchInput.addEventListener('blur', () => {
+    // Delay hiding to allow click on suggestions
+    setTimeout(hideSuggestions, 150);
+});
+
+searchInput.addEventListener('focus', () => {
+    showSuggestions(searchInput.value);
+});
+
+// Old title search functionality
+function showOldTitleSuggestions(query) {
+    oldTitleSuggestions.innerHTML = '';
+
+    let filteredTitles;
+    if (!query.trim()) {
+        // Show all titles when no query
+        filteredTitles = allTitles.slice(0, 10); // Limit to 10 items
+    } else {
+        // Filter titles based on query
+        filteredTitles = allTitles.filter(title =>
+            title.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 10); // Limit to 10 suggestions
+    }
+
+    if (filteredTitles.length === 0) {
+        oldTitleSuggestions.style.display = 'none';
+        return;
+    }
+
+    filteredTitles.forEach((title, index) => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+
+        if (query.trim()) {
+            // Highlight matching text
+            const regex = new RegExp(`(${query})`, 'gi');
+            const highlightedText = title.replace(regex, '<strong>$1</strong>');
+            suggestionItem.innerHTML = highlightedText;
+        } else {
+            suggestionItem.textContent = title;
+        }
+
+        suggestionItem.onclick = () => selectOldTitleSuggestion(title);
+        oldTitleSuggestions.appendChild(suggestionItem);
+    });
+
+    oldTitleSuggestions.style.display = 'block';
+    currentOldTitleSuggestionIndex = -1;
+}
+
+function selectOldTitleSuggestion(title) {
+    oldTitleInput.value = title;
+    oldTitleSuggestions.style.display = 'none';
+}
+
+function hideOldTitleSuggestions() {
+    oldTitleSuggestions.style.display = 'none';
+    currentOldTitleSuggestionIndex = -1;
+}
+
+function highlightOldTitleSuggestion(index) {
+    const items = oldTitleSuggestions.querySelectorAll('.suggestion-item');
+    items.forEach((item, i) => {
+        if (i === index) {
+            item.classList.add('highlighted');
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
+}
+
+// Old title input event listeners
+oldTitleInput.addEventListener('input', (e) => {
+    showOldTitleSuggestions(e.target.value);
+});
+
+oldTitleInput.addEventListener('keydown', (e) => {
+    const items = oldTitleSuggestions.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentOldTitleSuggestionIndex = Math.min(currentOldTitleSuggestionIndex + 1, items.length - 1);
+        highlightOldTitleSuggestion(currentOldTitleSuggestionIndex);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentOldTitleSuggestionIndex = Math.max(currentOldTitleSuggestionIndex - 1, -1);
+        highlightOldTitleSuggestion(currentOldTitleSuggestionIndex);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentOldTitleSuggestionIndex >= 0 && items[currentOldTitleSuggestionIndex]) {
+            selectOldTitleSuggestion(items[currentOldTitleSuggestionIndex].textContent);
+        } else if (oldTitleInput.value.trim()) {
+            // Just set the value without selecting from suggestions
+            hideOldTitleSuggestions();
+        }
+    } else if (e.key === 'Escape') {
+        hideOldTitleSuggestions();
+    }
+});
+
+oldTitleInput.addEventListener('blur', () => {
+    // Delay hiding to allow click on suggestions
+    setTimeout(hideOldTitleSuggestions, 150);
+});
+
+oldTitleInput.addEventListener('focus', () => {
+    showOldTitleSuggestions(oldTitleInput.value);
+});
+
+// Upload title search functionality
+function showTitleSuggestions(query) {
+    titleSuggestions.innerHTML = '';
+
+    let filteredTitles;
+    if (!query.trim()) {
+        // Show all titles when no query
+        filteredTitles = allTitles.slice(0, 10); // Limit to 10 items
+    } else {
+        // Filter titles based on query
+        filteredTitles = allTitles.filter(title =>
+            title.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 10); // Limit to 10 suggestions
+    }
+
+    if (filteredTitles.length === 0) {
+        titleSuggestions.style.display = 'none';
+        return;
+    }
+
+    filteredTitles.forEach((title, index) => {
+        const suggestionItem = document.createElement('div');
+        suggestionItem.className = 'suggestion-item';
+
+        if (query.trim()) {
+            // Highlight matching text
+            const regex = new RegExp(`(${query})`, 'gi');
+            const highlightedText = title.replace(regex, '<strong>$1</strong>');
+            suggestionItem.innerHTML = highlightedText;
+        } else {
+            suggestionItem.textContent = title;
+        }
+
+        suggestionItem.onclick = () => selectTitleSuggestion(title);
+        titleSuggestions.appendChild(suggestionItem);
+    });
+
+    titleSuggestions.style.display = 'block';
+    currentTitleSuggestionIndex = -1;
+}
+
+function selectTitleSuggestion(title) {
+    titleInput.value = title;
+    titleSuggestions.style.display = 'none';
+}
+
+function hideTitleSuggestions() {
+    titleSuggestions.style.display = 'none';
+    currentTitleSuggestionIndex = -1;
+}
+
+function highlightTitleSuggestion(index) {
+    const items = titleSuggestions.querySelectorAll('.suggestion-item');
+    items.forEach((item, i) => {
+        if (i === index) {
+            item.classList.add('highlighted');
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
+}
+
+// Upload title input event listeners
+titleInput.addEventListener('input', (e) => {
+    showTitleSuggestions(e.target.value);
+});
+
+titleInput.addEventListener('keydown', (e) => {
+    const items = titleSuggestions.querySelectorAll('.suggestion-item');
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        currentTitleSuggestionIndex = Math.min(currentTitleSuggestionIndex + 1, items.length - 1);
+        highlightTitleSuggestion(currentTitleSuggestionIndex);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        currentTitleSuggestionIndex = Math.max(currentTitleSuggestionIndex - 1, -1);
+        highlightTitleSuggestion(currentTitleSuggestionIndex);
+    } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (currentTitleSuggestionIndex >= 0 && items[currentTitleSuggestionIndex]) {
+            selectTitleSuggestion(items[currentTitleSuggestionIndex].textContent);
+        } else if (titleInput.value.trim()) {
+            // Just set the value without selecting from suggestions
+            hideTitleSuggestions();
+        }
+    } else if (e.key === 'Escape') {
+        hideTitleSuggestions();
+    }
+});
+
+titleInput.addEventListener('blur', () => {
+    // Delay hiding to allow click on suggestions
+    setTimeout(hideTitleSuggestions, 150);
+});
+
+titleInput.addEventListener('focus', () => {
+    showTitleSuggestions(titleInput.value);
 });
 
 
@@ -549,11 +846,11 @@ window.addEventListener('click', (e) => {
 });
 
 updateTitleBtn.addEventListener('click', async () => {
-    const oldTitle = oldTitleSelect.value;
+    const oldTitle = oldTitleInput.value.trim();
     const newTitle = newTitleInput.value.trim();
 
     if (!oldTitle) {
-        showNotification('Please select the old title.', 'error');
+        showNotification('Please enter the old title.', 'error');
         return;
     }
     if (!newTitle) {
@@ -576,9 +873,9 @@ updateTitleBtn.addEventListener('click', async () => {
 
             showNotification('Title updated successfully.', 'success');
             populateTitles();
-            searchSelect.value = '';
-            imagesContainer.innerHTML = '<p>Please select a title to view images.</p>';
-            oldTitleSelect.value = '';
+            searchInput.value = '';
+            imagesContainer.innerHTML = '<p>Please enter a title to view images.</p>';
+            oldTitleInput.value = '';
             newTitleInput.value = '';
             manageModal.style.display = 'none';
         } else {

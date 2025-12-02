@@ -211,10 +211,11 @@
 
         // Pagination variables
         let currentPage = 1;
-        const imagesPerPage = 10;
+        const imagesPerPage = 20; // Images per page
         let totalImages = 0;
-        let loadedImages = {}; // Store loaded images by page
+        let loadedImages = {}; // Store preloaded images data
         let currentTitleId = null; // Track current title
+        let isLoadingPage = false; // Prevent multiple simultaneous page loads
 
         // Get title from URL parameters
         function getTitleFromURL() {
@@ -254,12 +255,19 @@
                     return;
                 }
 
-                // Count images and videos
+                // Count images and videos using batch loading for better performance
                 let imageCount = 0;
                 let videoCount = 0;
 
-                for (const imageTitleDoc of imageTitlesSnapshot.docs) {
-                    const imageDoc = await db.collection('images').doc(imageTitleDoc.data().imageId).get();
+                // Collect all image IDs for batch loading
+                const imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
+
+                // Batch load all images data
+                const imagePromises = imageIds.map(id => db.collection('images').doc(id).get());
+                const imageDocs = await Promise.all(imagePromises);
+
+                // Count types
+                imageDocs.forEach((imageDoc) => {
                     if (imageDoc.exists) {
                         const fileData = imageDoc.data();
                         if (fileData.type === 'video') {
@@ -268,7 +276,7 @@
                             imageCount++;
                         }
                     }
-                }
+                });
 
                 // Update album subtitle with counts
                 const albumSubtitle = document.getElementById('albumSubtitle');
@@ -291,18 +299,26 @@
                     return dateA - dateB; // Oldest first, newest at end
                 });
 
-                // Store sorted image titles for pagination
+                // Preload all image data for better performance
+                const allImageIds = sortedImageTitles.map(doc => doc.data().imageId);
+                const allImagePromises = allImageIds.map(id => db.collection('images').doc(id).get());
+                const allImageDocs = await Promise.all(allImagePromises);
+
+                // Store preloaded image data
                 loadedImages = {};
                 loadedImages.all = sortedImageTitles;
+                loadedImages.data = allImageDocs
+                    .filter(doc => doc.exists)
+                    .map(doc => doc.data());
 
                 // Store total images count
-                totalImages = sortedImageTitles.length;
+                totalImages = loadedImages.data.length;
 
                 // Reset to first page when loading new images
                 currentPage = 1;
 
-                // Load and display first page
-                await loadImagesForPage(currentPage);
+                // Display first page (no need to load from database)
+                displayImagesForPage(currentPage);
 
             } catch (error) {
                 console.error('Error loading images and videos:', error);
@@ -311,60 +327,30 @@
             }
         }
 
-        // Function to load images for a specific page
-        async function loadImagesForPage(page) {
-            if (!currentTitleId || !loadedImages.all) return;
+        // Function to load images for a specific page (now uses preloaded data)
+        function loadImagesForPage(page) {
+            if (!currentTitleId || !loadedImages.all || !loadedImages.data || isLoadingPage) return;
 
-            // Check if images for this page are already loaded
+            // Check if images for this page are already processed
             if (loadedImages[page]) {
                 displayImagesForPage(page);
                 return;
             }
 
-            const imagesContainer = document.getElementById('imagesContainer');
+            isLoadingPage = true;
 
-            try {
-                // Show loading spinner while processing
-                imagesContainer.innerHTML = `
-                    <div class="loading-container">
-                        <div class="pink-spinner"></div>
-                        <p>Loading images and videos...</p>
-                    </div>
-                `;
+            // Get the images for current page from preloaded data
+            const startIndex = (page - 1) * imagesPerPage;
+            const endIndex = Math.min(startIndex + imagesPerPage, loadedImages.data.length);
+            const pageImages = loadedImages.data.slice(startIndex, endIndex);
 
-                // Get the images for current page from pre-sorted data
-                const startIndex = (page - 1) * imagesPerPage;
-                const endIndex = Math.min(startIndex + imagesPerPage, loadedImages.all.length);
-                const pageImageDocs = loadedImages.all.slice(startIndex, endIndex);
+            // Cache processed images for this page
+            loadedImages[page] = pageImages;
 
-                if (pageImageDocs.length === 0) {
-                    imagesContainer.innerHTML = '<p class="no-images">No images or videos found for this page.</p>';
-                    return;
-                }
+            // Display current page immediately (no loading from database)
+            displayImagesForPage(page);
 
-                // Load image data for current page
-                const pageImages = [];
-                for (const imageTitleDoc of pageImageDocs) {
-                    const imageTitleData = imageTitleDoc.data();
-                    const imageDoc = await db.collection('images').doc(imageTitleData.imageId).get();
-
-                    if (imageDoc.exists) {
-                        const imgData = imageDoc.data();
-                        pageImages.push(imgData);
-                    }
-                }
-
-                // Cache loaded images for this page
-                loadedImages[page] = pageImages;
-
-                // Display current page
-                displayImagesForPage(page);
-
-            } catch (error) {
-                console.error('Error loading images and videos for page:', error);
-                imagesContainer.innerHTML = '<p class="no-images">Error loading images and videos.</p>';
-                showNotification('Error loading images and videos.', 'error');
-            }
+            isLoadingPage = false;
         }
 
         // Function to display images for a specific page
@@ -372,7 +358,19 @@
             const imagesContainer = document.getElementById('imagesContainer');
             imagesContainer.innerHTML = ''; // Clear previous content
 
-            const pageImages = loadedImages[page];
+            // First check if page is already cached
+            let pageImages = loadedImages[page];
+
+            // If not cached, get from main data array
+            if (!pageImages && loadedImages.data) {
+                const startIndex = (page - 1) * imagesPerPage;
+                const endIndex = Math.min(startIndex + imagesPerPage, loadedImages.data.length);
+                pageImages = loadedImages.data.slice(startIndex, endIndex);
+
+                // Cache it for future use
+                loadedImages[page] = pageImages;
+            }
+
             if (!pageImages || pageImages.length === 0) {
                 imagesContainer.innerHTML = '<p class="no-images">No images or videos to display.</p>';
                 hidePagination();
@@ -405,6 +403,10 @@
                     img.src = imgData.url;
                     img.alt = imgData.name;
                     img.loading = 'lazy'; // Lazy loading for better performance
+                    img.style.width = '100%';
+                    img.style.height = 'auto';
+                    img.style.borderRadius = '8px';
+                    img.style.objectFit = 'cover';
 
                     mediaCard.appendChild(img);
                 }
@@ -452,36 +454,48 @@
         }
 
         // Function to go to first page
-        async function goToFirstPage() {
-            if (currentPage !== 1) {
+        function goToFirstPage() {
+            if (currentPage !== 1 && !isLoadingPage) {
                 currentPage = 1;
-                await loadImagesForPage(currentPage);
+                loadImagesForPage(currentPage);
+                // Scroll to top when changing pages
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
         // Function to go to previous page
-        async function goToPrevPage() {
-            if (currentPage > 1) {
+        function goToPrevPage() {
+            if (currentPage > 1 && !isLoadingPage) {
                 currentPage--;
-                await loadImagesForPage(currentPage);
+                loadImagesForPage(currentPage);
+                // Scroll to top when changing pages
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
         // Function to go to next page
-        async function goToNextPage() {
+        function goToNextPage() {
             const totalPages = Math.ceil(totalImages / imagesPerPage);
-            if (currentPage < totalPages) {
+            if (currentPage < totalPages && !isLoadingPage) {
                 currentPage++;
-                await loadImagesForPage(currentPage);
+                loadImagesForPage(currentPage);
+                // Scroll to top when changing pages
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // Preload next page in background for better UX
+                if (currentPage < totalPages) {
+                    setTimeout(() => loadImagesForPage(currentPage + 1), 100);
+                }
             }
         }
 
         // Function to go to last page
-        async function goToLastPage() {
+        function goToLastPage() {
             const totalPages = Math.ceil(totalImages / imagesPerPage);
-            if (currentPage !== totalPages) {
+            if (currentPage !== totalPages && !isLoadingPage) {
                 currentPage = totalPages;
-                await loadImagesForPage(currentPage);
+                loadImagesForPage(currentPage);
+                // Scroll to top when changing pages
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
