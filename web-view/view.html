@@ -390,12 +390,43 @@
                     const video = document.createElement('video');
                     video.src = imgData.url;
                     video.controls = true;
-                    video.style.maxWidth = '90%';
                     video.style.display = 'block';
                     video.style.margin = '0 auto';
-                    video.style.height = 'auto';
                     video.style.borderRadius = '8px';
                     video.preload = 'metadata'; // Load metadata for better performance
+
+                    // Resize video to fit within 90% width and 90% height limits
+                    video.onload = function() {
+                        const screenWidth = window.innerWidth;
+                        const screenHeight = window.innerHeight;
+                        const maxWidth = screenWidth * 0.9;
+                        const maxHeight = screenHeight * 0.9;
+
+                        const videoWidth = this.videoWidth;
+                        const videoHeight = this.videoHeight;
+
+                        // If video width is smaller than 50% of screen width, don't resize
+                        if (videoWidth < screenWidth * 0.5) {
+                            this.style.width = videoWidth + 'px';
+                            this.style.height = 'auto';
+                            this.style.maxWidth = '100%';
+                        } else {
+                            // Calculate scale factors
+                            const scaleW = maxWidth / videoWidth;
+                            const scaleH = maxHeight / videoHeight;
+                            const scale = Math.min(scaleW, scaleH);
+
+                            // Apply scaling if needed
+                            if (scale < 1) {
+                                this.style.width = (videoWidth * scale) + 'px';
+                                this.style.height = (videoHeight * scale) + 'px';
+                            } else {
+                                this.style.width = videoWidth + 'px';
+                                this.style.height = 'auto';
+                                this.style.maxWidth = '90%';
+                            }
+                        }
+                    };
 
                     mediaCard.appendChild(video);
                 } else {
@@ -403,21 +434,39 @@
                     img.src = imgData.url;
                     img.alt = imgData.name;
                     img.loading = 'lazy'; // Lazy loading for better performance
-                    img.style.height = 'auto';
                     img.style.borderRadius = '8px';
                     img.style.objectFit = 'cover';
 
-                    // Prevent small images from being enlarged beyond their natural size
+                    // Resize image to fit within 90% width and 90% height limits
                     img.onload = function() {
                         const screenWidth = window.innerWidth;
-                        const imageNaturalWidth = this.naturalWidth;
+                        const screenHeight = window.innerHeight;
+                        const maxWidth = screenWidth * 0.9;
+                        const maxHeight = screenHeight * 0.9;
 
-                        // If image is smaller than 50% of screen width, don't enlarge it
+                        const imageNaturalWidth = this.naturalWidth;
+                        const imageNaturalHeight = this.naturalHeight;
+
+                        // If image width is smaller than 50% of screen width, don't resize
                         if (imageNaturalWidth < screenWidth * 0.5) {
                             this.style.width = imageNaturalWidth + 'px';
-                            this.style.maxWidth = '100%'; // Still responsive on small screens
+                            this.style.height = 'auto';
+                            this.style.maxWidth = '100%';
                         } else {
-                            this.style.width = '100%';
+                            // Calculate scale factors
+                            const scaleW = maxWidth / imageNaturalWidth;
+                            const scaleH = maxHeight / imageNaturalHeight;
+                            const scale = Math.min(scaleW, scaleH);
+
+                            // Apply scaling if needed
+                            if (scale < 1) {
+                                this.style.width = (imageNaturalWidth * scale) + 'px';
+                                this.style.height = (imageNaturalHeight * scale) + 'px';
+                            } else {
+                                this.style.width = imageNaturalWidth + 'px';
+                                this.style.height = 'auto';
+                                this.style.maxWidth = '90%';
+                            }
                         }
                     };
 

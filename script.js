@@ -376,7 +376,7 @@ async function deleteImage(docId, publicId, titleId) {
 
             showNotification('File deleted successfully!', 'success');
 
-            const currentFilter = searchSelect.value;
+            const currentFilter = searchInput.value;
             if (currentFilter) {
                 allImages = allImages.filter(item => item.doc.id !== docId);
                 totalImages = allImages.length;
@@ -1084,7 +1084,7 @@ async function bulkDeleteSelectedImages() {
         selectedImages = [];
         bulkDeleteBtn.style.display = 'none';
 
-        const currentFilter = searchSelect.value;
+        const currentFilter = searchInput.value;
         if (currentFilter) {
             loadImages(currentFilter);
         } else {
