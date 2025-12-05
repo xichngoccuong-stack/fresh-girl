@@ -154,6 +154,16 @@
                 <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
             </div>
 
+            <!-- Cover Image Display -->
+            <div id="coverImageContainer" style="display: none; text-align: center; margin-bottom: 30px;">
+                <div style="position: relative; display: inline-block; max-width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 8px 32px rgba(255, 105, 180, 0.3);">
+                    <img id="coverImage" src="" alt="Album Cover" style="max-width: 100%; height: auto; display: block;">
+                    <div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(45deg, #ffd700, #ffed4e); color: #000; padding: 8px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                        ⭐ Bìa Album
+                    </div>
+                </div>
+            </div>
+
             <!-- Notification system -->
             <div id="notification" class="notification" style="display: none;">
                 <span id="notificationMessage"></span>
@@ -243,38 +253,46 @@
                 const titleDoc = titleSnapshot.docs[0];
                 currentTitleId = titleDoc.id;
 
-                // Get total count of images/videos for this title
-                const imageTitlesSnapshot = await db.collection('image_titles')
+                // Get cover image for this album
+                let coverImageUrl = null;
+                try {
+                    const coverSnapshot = await db.collection('album_covers')
+                        .where('albumId', '==', titleDoc.id)
+                        .get();
+
+                    if (!coverSnapshot.empty) {
+                        const coverData = coverSnapshot.docs[0].data();
+                        const coverImageDoc = await db.collection('images').doc(coverData.imageId).get();
+                        if (coverImageDoc.exists) {
+                            coverImageUrl = coverImageDoc.data().url;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error loading cover image for album:', titleName, error);
+                }
+
+                // Load images from new structure only (direct images with titleId)
+                const imagesSnapshot = await db.collection('images')
                     .where('titleId', '==', titleDoc.id)
                     .get();
 
-                if (imageTitlesSnapshot.empty) {
+                if (imagesSnapshot.empty) {
                     imagesContainer.innerHTML = '<p class="no-images">No images or videos found for this title.</p>';
                     const albumSubtitle = document.getElementById('albumSubtitle');
                     albumSubtitle.textContent = `${titleName} (0 files)`;
                     return;
                 }
 
-                // Count images and videos using batch loading for better performance
+                // Count images and videos
                 let imageCount = 0;
                 let videoCount = 0;
 
-                // Collect all image IDs for batch loading
-                const imageIds = imageTitlesSnapshot.docs.map(doc => doc.data().imageId);
-
-                // Batch load all images data
-                const imagePromises = imageIds.map(id => db.collection('images').doc(id).get());
-                const imageDocs = await Promise.all(imagePromises);
-
-                // Count types
-                imageDocs.forEach((imageDoc) => {
-                    if (imageDoc.exists) {
-                        const fileData = imageDoc.data();
-                        if (fileData.type === 'video') {
-                            videoCount++;
-                        } else {
-                            imageCount++;
-                        }
+                imagesSnapshot.docs.forEach((doc) => {
+                    const imageData = doc.data();
+                    if (imageData.type === 'video') {
+                        videoCount++;
+                    } else {
+                        imageCount++;
                     }
                 });
 
@@ -292,24 +310,28 @@
                 }
                 albumSubtitle.textContent = `${titleName} (${countText})`;
 
+                // Display cover image if available
+                const coverImageContainer = document.getElementById('coverImageContainer');
+                const coverImage = document.getElementById('coverImage');
+
+                if (coverImageUrl) {
+                    coverImage.src = coverImageUrl;
+                    coverImageContainer.style.display = 'block';
+                } else {
+                    coverImageContainer.style.display = 'none';
+                }
+
                 // Sort images by createdAt (newest at end)
-                const sortedImageTitles = imageTitlesSnapshot.docs.sort((a, b) => {
+                const sortedImages = imagesSnapshot.docs.sort((a, b) => {
                     const dateA = a.data().createdAt?.toDate?.() || new Date(a.data().createdAt);
                     const dateB = b.data().createdAt?.toDate?.() || new Date(b.data().createdAt);
                     return dateA - dateB; // Oldest first, newest at end
                 });
 
-                // Preload all image data for better performance
-                const allImageIds = sortedImageTitles.map(doc => doc.data().imageId);
-                const allImagePromises = allImageIds.map(id => db.collection('images').doc(id).get());
-                const allImageDocs = await Promise.all(allImagePromises);
-
-                // Store preloaded image data
+                // Store preloaded image data (direct from images collection)
                 loadedImages = {};
-                loadedImages.all = sortedImageTitles;
-                loadedImages.data = allImageDocs
-                    .filter(doc => doc.exists)
-                    .map(doc => doc.data());
+                loadedImages.all = sortedImages;
+                loadedImages.data = sortedImages.map(doc => doc.data());
 
                 // Store total images count
                 totalImages = loadedImages.data.length;

@@ -1,0 +1,8 @@
+{
+  "name": "image-gallery",
+  "version": "1.0.0",
+  "description": "Frontend image gallery with Firebase integration",
+  "keywords": ["gallery", "firebase", "frontend"],
+  "author": "",
+  "license": "ISC"
+}

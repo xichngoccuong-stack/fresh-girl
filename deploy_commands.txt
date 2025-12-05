@@ -4,7 +4,4 @@ git commit --allow-empty-message -m "Deploy update"
 git push
 
 # Deploy main site
-npx surge . fresh-girl-3639-admin.surge.sh --overwrite
-
-# Deploy test results viewer
-cd web-view; npx surge . fresh-girl-vn.surge.sh --overwrite; cd ..
+npx surge . fresh-girl-vn.surge.sh --overwrite
