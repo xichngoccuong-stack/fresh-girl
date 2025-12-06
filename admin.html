@@ -374,57 +374,24 @@
 
         // Debug function for Cloudinary delete testing
         function debugCloudinaryDelete() {
-            console.log('=== CLOUNDINARY DELETE DEBUG ===');
-            console.log('API Key:', CLOUDINARY_API_KEY);
-            console.log('API Secret configured:', CLOUDINARY_API_SECRET !== 'your_api_secret_here' && CLOUDINARY_API_SECRET !== '0aMeGCztYAn09WkM_Y0ekYmLBPw');
-            console.log('Cloud Name:', CLOUDINARY_CLOUD_NAME);
-            console.log('Upload Preset:', CLOUDINARY_UPLOAD_PRESET);
-            console.log('');
 
             // Test with sample data
             const testPublicId = 'urap5hajxbf2bv09uwz8';
             const testTimestamp = Math.floor(Date.now() / 1000);
 
-            console.log('Test Parameters:');
-            console.log('- Public ID:', testPublicId);
-            console.log('- Timestamp:', testTimestamp);
-            console.log('- API Key:', CLOUDINARY_API_KEY);
-            console.log('');
 
             // Generate signature
             const params = { public_id: testPublicId, timestamp: testTimestamp };
             const sortedKeys = Object.keys(params).sort();
             const stringToSign = sortedKeys.map(key => `${key}=${params[key]}`).join('&');
 
-            console.log('Signature Generation:');
-            console.log('- Parameters:', params);
-            console.log('- Sorted Keys:', sortedKeys);
-            console.log('- String to sign:', stringToSign);
-            console.log('- API Secret length:', CLOUDINARY_API_SECRET.length);
-            console.log('');
 
             // Calculate signature
             generateCloudinarySignature(params, CLOUDINARY_API_SECRET).then(signature => {
-                console.log('Generated Signature:', signature);
-                console.log('');
 
-                console.log('=== POSTMAN REQUEST ===');
-                console.log('Method: POST');
-                console.log('URL: https://api.cloudinary.com/v1_1/dwsljlcqr/image/destroy');
-                console.log('Headers: Content-Type: application/x-www-form-urlencoded');
-                console.log('');
-                console.log('Body (x-www-form-urlencoded):');
-                console.log(`public_id=${testPublicId}`);
-                console.log(`signature=${signature}`);
-                console.log(`api_key=${CLOUDINARY_API_KEY}`);
-                console.log(`timestamp=${testTimestamp}`);
-                console.log('');
-                console.log('=== END DEBUG ===');
 
                 // Test the actual API call
-                console.log('Testing API call...');
                 deleteFromCloudinary(testPublicId).then(result => {
-                    console.log('API Test Result:', result);
                 }).catch(error => {
                     console.error('API Test Error:', error);
                 });
@@ -435,16 +402,11 @@
 
         // Cloudinary signed request helper - FINAL VERSION
         async function generateCloudinarySignature(params, secret) {
-            console.log('🔐 Starting signature generation...');
-            console.log('Input params:', params);
-            console.log('API Secret length:', secret.length);
 
             // Sort parameters alphabetically (Cloudinary requirement)
             const sortedKeys = Object.keys(params).sort();
             const sortedParams = sortedKeys.map(key => `${key}=${params[key]}`).join('&');
 
-            console.log('Sorted keys:', sortedKeys);
-            console.log('String to sign:', sortedParams);
 
             try {
                 // Use Web Crypto API for proper HMAC-SHA1
@@ -464,7 +426,6 @@
                     ['sign']
                 );
 
-                console.log('✅ HMAC key imported successfully');
 
                 // Generate signature
                 const signature = await crypto.subtle.sign('HMAC', key, messageData);
@@ -473,17 +434,14 @@
                 const hashArray = Array.from(new Uint8Array(signature));
                 const signatureHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-                console.log('✅ Signature generated:', signatureHex);
                 return signatureHex;
 
             } catch (error) {
                 console.error('❌ Web Crypto API failed:', error);
-                console.log('🔄 Falling back to manual HMAC implementation...');
 
                 // Fallback implementation using a more reliable method
                 try {
                     const signatureHex = manualHmacSha1(sortedParams, secret);
-                    console.log('✅ Fallback signature generated:', signatureHex);
                     return signatureHex;
                 } catch (fallbackError) {
                     console.error('❌ Fallback also failed:', fallbackError);
@@ -753,7 +711,6 @@
                 document.body.style.userSelect = 'none';
 
                 try {
-                    console.log('🗑️ Starting album deletion from Firestore only:', id);
 
                     // Start batch operation for atomic deletion
                     const batch = db.batch();
@@ -767,7 +724,6 @@
                     }
 
                     const albumData = albumDoc.data();
-                    console.log(`📁 Album found: ${albumData.name}`);
 
                     // 2. Get all images for this album
                     const imagesSnapshot = await db.collection('images')
@@ -775,21 +731,30 @@
                         .get();
 
                     const imageCount = imagesSnapshot.docs.length;
-                    console.log(`🖼️ Found ${imageCount} images to delete from database`);
 
-                    // 3. Delete all images from Firestore
-                    console.log('🗃️ Deleting images from Firestore...');
+                    // 3. Get all album covers for this album
+                    const coversSnapshot = await db.collection('album_covers')
+                        .where('albumId', '==', id)
+                        .get();
+
+                    const coverCount = coversSnapshot.docs.length;
+
+                    // 4. Delete all images from Firestore
                     imagesSnapshot.docs.forEach(doc => {
                         batch.delete(doc.ref);
                     });
 
-                    // 4. Delete the album
+                    // 5. Delete all album covers from Firestore
+                    coversSnapshot.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+
+                    // 6. Delete the album
                     batch.delete(albumRef);
 
                     // 5. Commit the batch
                     await batch.commit();
 
-                    console.log('✅ Album deletion from Firestore completed successfully');
 
                     // Hide loading overlay
                     loadingOverlay.classList.add('hidden');
@@ -938,7 +903,6 @@
         // Set image as album cover
         async function setAsCover(imageId, albumId) {
             try {
-                console.log('Setting image as cover:', imageId, 'for album:', albumId);
 
                 // First, check if there's already a cover for this album
                 const existingCoverSnapshot = await db.collection('album_covers')
@@ -952,7 +916,6 @@
                 if (!existingCoverSnapshot.empty) {
                     const existingCoverDoc = existingCoverSnapshot.docs[0];
                     batch.delete(existingCoverDoc.ref);
-                    console.log('Removed existing cover:', existingCoverDoc.id);
                 }
 
                 // Add new cover
@@ -966,7 +929,6 @@
                 // Commit the batch
                 await batch.commit();
 
-                console.log('Successfully set new cover image');
 
                 // Reload images to update UI
                 await loadImages(albumId);
@@ -1003,7 +965,6 @@
 
             for (const file of selectedFiles) {
                 try {
-                    console.log('Uploading file:', file.name);
 
                     // Tạo FormData cho Cloudinary
                     const formData = new FormData();
@@ -1026,7 +987,6 @@
                     }
 
                     const data = await response.json();
-                    console.log('Cloudinary response:', data);
 
                     if (!data.secure_url) {
                         throw new Error('No secure URL in response');
@@ -1042,7 +1002,6 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
-                    console.log('Saved to Firestore:', docRef.id);
                     successCount++;
 
                 } catch (error) {
@@ -1078,7 +1037,6 @@
         // Set image as album cover
         async function setAsCover(imageId, albumId) {
             try {
-                console.log('Setting image as cover:', imageId, 'for album:', albumId);
 
                 // First, check if there's already a cover for this album
                 const existingCoverSnapshot = await db.collection('album_covers')
@@ -1092,7 +1050,6 @@
                 if (!existingCoverSnapshot.empty) {
                     const existingCoverDoc = existingCoverSnapshot.docs[0];
                     batch.delete(existingCoverDoc.ref);
-                    console.log('Removed existing cover:', existingCoverDoc.id);
                 }
 
                 // Add new cover
@@ -1106,7 +1063,6 @@
                 // Commit the batch
                 await batch.commit();
 
-                console.log('Successfully set new cover image');
 
                 // Reload images to update UI
                 await loadImages(albumId);
@@ -1133,7 +1089,6 @@
                     // If it's the cover, remove it from covers collection
                     if (!coverSnapshot.empty) {
                         batch.delete(coverSnapshot.docs[0].ref);
-                        console.log('Removed cover reference for deleted image');
                     }
 
                     // Delete from images collection

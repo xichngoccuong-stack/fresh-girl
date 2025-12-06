@@ -154,15 +154,6 @@
                 <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
             </div>
 
-            <!-- Cover Image Display -->
-            <div id="coverImageContainer" style="display: none; text-align: center; margin-bottom: 30px;">
-                <div style="position: relative; display: inline-block; max-width: 100%; border-radius: 15px; overflow: hidden; box-shadow: 0 8px 32px rgba(255, 105, 180, 0.3);">
-                    <img id="coverImage" src="" alt="Album Cover" style="max-width: 100%; height: auto; display: block;">
-                    <div style="position: absolute; top: 10px; right: 10px; background: linear-gradient(45deg, #ffd700, #ffed4e); color: #000; padding: 8px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                        ⭐ Bìa Album
-                    </div>
-                </div>
-            </div>
 
             <!-- Notification system -->
             <div id="notification" class="notification" style="display: none;">
@@ -226,6 +217,30 @@
         let loadedImages = {}; // Store preloaded images data
         let currentTitleId = null; // Track current title
         let isLoadingPage = false; // Prevent multiple simultaneous page loads
+        let currentCoverImageUrl = null; // Store current cover image URL for pagination
+
+        // Shared function for sizing media elements
+        function applyMediaSizing(element, naturalWidth, naturalHeight) {
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const maxWidth = screenWidth * 0.9;
+            const maxHeight = screenHeight * 0.9;
+
+            // Always calculate scale to fit within 90%
+            const scaleW = maxWidth / naturalWidth;
+            const scaleH = maxHeight / naturalHeight;
+            const scale = Math.min(scaleW, scaleH);
+
+            if (scale < 1) {
+                element.style.width = (naturalWidth * scale) + 'px';
+                element.style.height = (naturalHeight * scale) + 'px';
+            } else {
+                element.style.width = naturalWidth + 'px';
+                element.style.height = 'auto';
+                element.style.maxWidth = '90%';
+                element.style.maxHeight = '90%';
+            }
+        }
 
         // Get title from URL parameters
         function getTitleFromURL() {
@@ -268,7 +283,7 @@
                         }
                     }
                 } catch (error) {
-                    console.warn('Error loading cover image for album:', titleName, error);
+                    console.error('Error loading cover image for album:', titleName, error);
                 }
 
                 // Load images from new structure only (direct images with titleId)
@@ -310,16 +325,8 @@
                 }
                 albumSubtitle.textContent = `${titleName} (${countText})`;
 
-                // Display cover image if available
-                const coverImageContainer = document.getElementById('coverImageContainer');
-                const coverImage = document.getElementById('coverImage');
-
-                if (coverImageUrl) {
-                    coverImage.src = coverImageUrl;
-                    coverImageContainer.style.display = 'block';
-                } else {
-                    coverImageContainer.style.display = 'none';
-                }
+                // Store cover image URL for potential future use
+                currentCoverImageUrl = coverImageUrl || null;
 
                 // Sort images by createdAt (newest at end)
                 const sortedImages = imagesSnapshot.docs.sort((a, b) => {
@@ -340,7 +347,7 @@
                 currentPage = 1;
 
                 // Display first page (no need to load from database)
-                displayImagesForPage(currentPage);
+                displayImagesForPage(currentPage, currentCoverImageUrl);
 
             } catch (error) {
                 console.error('Error loading images and videos:', error);
@@ -350,12 +357,12 @@
         }
 
         // Function to load images for a specific page (now uses preloaded data)
-        function loadImagesForPage(page) {
+        function loadImagesForPage(page, coverImageUrl = null) {
             if (!currentTitleId || !loadedImages.all || !loadedImages.data || isLoadingPage) return;
 
             // Check if images for this page are already processed
             if (loadedImages[page]) {
-                displayImagesForPage(page);
+                displayImagesForPage(page, coverImageUrl);
                 return;
             }
 
@@ -370,13 +377,13 @@
             loadedImages[page] = pageImages;
 
             // Display current page immediately (no loading from database)
-            displayImagesForPage(page);
+            displayImagesForPage(page, coverImageUrl);
 
             isLoadingPage = false;
         }
 
         // Function to display images for a specific page
-        function displayImagesForPage(page) {
+        function displayImagesForPage(page, coverImageUrl = null) {
             const imagesContainer = document.getElementById('imagesContainer');
             imagesContainer.innerHTML = ''; // Clear previous content
 
@@ -388,6 +395,7 @@
                 const startIndex = (page - 1) * imagesPerPage;
                 const endIndex = Math.min(startIndex + imagesPerPage, loadedImages.data.length);
                 pageImages = loadedImages.data.slice(startIndex, endIndex);
+
 
                 // Cache it for future use
                 loadedImages[page] = pageImages;
@@ -419,28 +427,7 @@
 
                     // Resize video to fit within 90% width and 90% height limits
                     video.onloadedmetadata = function() {
-                        const screenWidth = window.innerWidth;
-                        const screenHeight = window.innerHeight;
-                        const maxWidth = screenWidth * 0.9;
-                        const maxHeight = screenHeight * 0.9;
-
-                        const videoWidth = this.videoWidth;
-                        const videoHeight = this.videoHeight;
-
-                        // Always calculate scale to fit within 90%
-                        const scaleW = maxWidth / videoWidth;
-                        const scaleH = maxHeight / videoHeight;
-                        const scale = Math.min(scaleW, scaleH);
-
-                        if (scale < 1) {
-                            this.style.width = (videoWidth * scale) + 'px';
-                            this.style.height = (videoHeight * scale) + 'px';
-                        } else {
-                            this.style.width = videoWidth + 'px';
-                            this.style.height = 'auto';
-                            this.style.maxWidth = '90%';
-                            this.style.maxHeight = '90%';
-                        }
+                        applyMediaSizing(video, this.videoWidth, this.videoHeight);
                     };
 
                     mediaCard.appendChild(video);
@@ -454,28 +441,7 @@
 
                     // Resize image to fit within 90% width and 90% height limits
                     img.onload = function() {
-                        const screenWidth = window.innerWidth;
-                        const screenHeight = window.innerHeight;
-                        const maxWidth = screenWidth * 0.9;
-                        const maxHeight = screenHeight * 0.9;
-
-                        const imageNaturalWidth = this.naturalWidth;
-                        const imageNaturalHeight = this.naturalHeight;
-
-                        // Always calculate scale to fit within 90%
-                        const scaleW = maxWidth / imageNaturalWidth;
-                        const scaleH = maxHeight / imageNaturalHeight;
-                        const scale = Math.min(scaleW, scaleH);
-
-                        if (scale < 1) {
-                            this.style.width = (imageNaturalWidth * scale) + 'px';
-                            this.style.height = (imageNaturalHeight * scale) + 'px';
-                        } else {
-                            this.style.width = imageNaturalWidth + 'px';
-                            this.style.height = 'auto';
-                            this.style.maxWidth = '90%';
-                            this.style.maxHeight = '90%';
-                        }
+                        applyMediaSizing(img, this.naturalWidth, this.naturalHeight);
                     };
 
                     // Fallback for browsers that don't support naturalWidth immediately
@@ -494,7 +460,7 @@
         }
 
         // Function to update pagination UI
-        function updatePaginationUI(currentPage, totalPages) {
+        function updatePaginationUI(page, totalPages) {
             const paginationContainer = document.getElementById('paginationContainer');
             const pageInfo = document.getElementById('pageInfo');
             const firstBtn = document.getElementById('firstPageBtn');
@@ -508,13 +474,13 @@
             }
 
             // Update page info
-            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+            pageInfo.textContent = `Page ${page} of ${totalPages}`;
 
             // Enable/disable buttons
-            firstBtn.disabled = currentPage === 1;
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = currentPage === totalPages;
-            lastBtn.disabled = currentPage === totalPages;
+            firstBtn.disabled = page === 1;
+            prevBtn.disabled = page === 1;
+            nextBtn.disabled = page === totalPages;
+            lastBtn.disabled = page === totalPages;
 
             // Show pagination
             paginationContainer.style.display = 'block';
@@ -532,7 +498,7 @@
         function goToFirstPage() {
             if (currentPage !== 1 && !isLoadingPage) {
                 currentPage = 1;
-                loadImagesForPage(currentPage);
+                displayImagesForPage(currentPage, currentCoverImageUrl);
                 // Scroll to top when changing pages
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -542,7 +508,7 @@
         function goToPrevPage() {
             if (currentPage > 1 && !isLoadingPage) {
                 currentPage--;
-                loadImagesForPage(currentPage);
+                displayImagesForPage(currentPage, currentCoverImageUrl);
                 // Scroll to top when changing pages
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -553,13 +519,9 @@
             const totalPages = Math.ceil(totalImages / imagesPerPage);
             if (currentPage < totalPages && !isLoadingPage) {
                 currentPage++;
-                loadImagesForPage(currentPage);
+                displayImagesForPage(currentPage, currentCoverImageUrl);
                 // Scroll to top when changing pages
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                // Preload next page in background for better UX
-                if (currentPage < totalPages) {
-                    setTimeout(() => loadImagesForPage(currentPage + 1), 100);
-                }
             }
         }
 
@@ -568,7 +530,7 @@
             const totalPages = Math.ceil(totalImages / imagesPerPage);
             if (currentPage !== totalPages && !isLoadingPage) {
                 currentPage = totalPages;
-                loadImagesForPage(currentPage);
+                displayImagesForPage(currentPage, currentCoverImageUrl);
                 // Scroll to top when changing pages
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
