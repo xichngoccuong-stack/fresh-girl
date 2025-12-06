@@ -42,10 +42,12 @@
         @media (max-width: 768px) {
             .gallery-container {
                 margin-top: 10px;
+                padding: 10px !important;
             }
 
             .gallery-container > div:first-child {
                 padding: 6px !important;
+                margin-bottom: 15px !important;
             }
 
             .gallery-container > div:first-child img {
@@ -63,22 +65,52 @@
             #albumSubtitle {
                 font-size: 0.9em !important;
                 padding: 8px 16px !important;
+                margin-bottom: 15px !important;
+            }
+
+            /* Album note section responsive */
+            #albumNoteSection {
+                margin: 0 auto 20px auto !important;
+                max-width: 95% !important;
+            }
+
+            #albumNoteSection > div {
+                padding: 15px !important;
+            }
+
+            #albumNote {
+                font-size: 0.9em !important;
+                line-height: 1.4 !important;
             }
 
             /* Pagination responsive */
             #paginationContainer {
-                gap: 10px !important;
-                padding: 15px !important;
+                gap: 8px !important;
+                padding: 12px !important;
+                margin-top: 25px !important;
+                margin-bottom: 15px !important;
             }
 
             .pagination-btn {
-                padding: 8px 16px !important;
-                font-size: 13px !important;
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+                min-width: 60px !important;
             }
 
             .page-info {
-                font-size: 14px !important;
-                margin: 0 10px !important;
+                font-size: 13px !important;
+                margin: 0 8px !important;
+            }
+
+            /* Footer responsive */
+            footer {
+                margin-top: 40px !important;
+                margin-bottom: 20px !important;
+                padding: 15px !important;
+            }
+
+            footer > div {
+                padding: 12px 20px !important;
             }
         }
 
