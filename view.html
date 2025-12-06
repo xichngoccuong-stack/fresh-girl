@@ -149,9 +149,17 @@
             </div>
 
             <!-- Album subtitle -->
-            <div style="text-align: center; margin-bottom: 30px; margin-top: 20px; position: relative;">
+            <div style="text-align: center; margin-bottom: 20px; margin-top: 20px; position: relative;">
                 <p id="albumSubtitle" style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">Loading album...</p>
                 <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+            </div>
+
+            <!-- Album note section -->
+            <div id="albumNoteSection" style="width: 100%; max-width: 1200px; margin: 0 auto 30px auto; display: none;">
+                <div style="padding: 20px; border-radius: 15px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative;">
+                    <div id="albumNote" style="color: #cccccc; font-size: 1em; line-height: 1.5; text-align: left;"></div>
+                    <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 15px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+                </div>
             </div>
 
 
@@ -294,13 +302,24 @@
                 if (imagesSnapshot.empty) {
                     imagesContainer.innerHTML = '<p class="no-images">No images or videos found for this title.</p>';
                     const albumSubtitle = document.getElementById('albumSubtitle');
-                    albumSubtitle.textContent = `${titleName} (0 files)`;
+                    albumSubtitle.textContent = `✨ ${titleName} ✨ (0 files)`;
                     return;
                 }
 
-                // Update album subtitle without counts
+                // Update album subtitle (just the name)
                 const albumSubtitle = document.getElementById('albumSubtitle');
-                albumSubtitle.textContent = titleName;
+                albumSubtitle.textContent = `✨ ${titleName} ✨`;
+
+                // Update album note section
+                const albumNoteSection = document.getElementById('albumNoteSection');
+                const albumNote = document.getElementById('albumNote');
+                const titleData = titleDoc.data();
+                if (titleData.note && titleData.note.trim()) {
+                    albumNote.innerHTML = titleData.note.replace(/\n/g, '<br>');
+                    albumNoteSection.style.display = 'block';
+                } else {
+                    albumNoteSection.style.display = 'none';
+                }
 
                 // Store cover image URL for potential future use
                 currentCoverImageUrl = coverImageUrl || null;

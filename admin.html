@@ -286,6 +286,10 @@
                 <label for="titleName">Tên Album:</label>
                 <input type="text" id="titleName" required>
             </div>
+            <div class="form-group">
+                <label for="titleNote">Ghi chú:</label>
+                <textarea id="titleNote" rows="3" placeholder="Nhập ghi chú cho album..."></textarea>
+            </div>
             <button type="submit" class="btn">Thêm Album</button>
         </form>
     </div>
@@ -308,6 +312,10 @@
                 <div class="form-group">
                     <label for="editTitleName">Tên Album:</label>
                     <input type="text" id="editTitleName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editTitleNote">Ghi chú:</label>
+                    <textarea id="editTitleNote" rows="3" placeholder="Nhập ghi chú cho album..."></textarea>
                 </div>
                 <button type="submit" class="btn">Cập Nhật</button>
             </form>
@@ -447,13 +455,16 @@
         document.getElementById('addTitleForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const titleName = document.getElementById('titleName').value;
-
+            const titleNote = document.getElementById('titleNote').value;
+    
             try {
                 await db.collection('titles').add({
                     name: titleName,
+                    note: titleNote,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 document.getElementById('titleName').value = '';
+                document.getElementById('titleNote').value = '';
                 loadTitles();
                 showNotification('Album đã được thêm thành công!', 'success');
             } catch (error) {
@@ -463,9 +474,21 @@
         });
 
         // Edit title
-        function editTitle(id, name) {
+        async function editTitle(id, name) {
             document.getElementById('editTitleId').value = id;
             document.getElementById('editTitleName').value = name;
+
+            // Get current note from Firebase
+            try {
+                const titleDoc = await db.collection('titles').doc(id).get();
+                if (titleDoc.exists) {
+                    const titleData = titleDoc.data();
+                    document.getElementById('editTitleNote').value = titleData.note || '';
+                }
+            } catch (error) {
+                console.error('Error loading title note:', error);
+            }
+
             document.getElementById('editModal').style.display = 'block';
         }
 
@@ -477,9 +500,10 @@
             e.preventDefault();
             const id = document.getElementById('editTitleId').value;
             const name = document.getElementById('editTitleName').value;
+            const note = document.getElementById('editTitleNote').value;
 
             try {
-                await db.collection('titles').doc(id).update({ name });
+                await db.collection('titles').doc(id).update({ name, note });
                 closeEditModal();
                 loadTitles();
                 showNotification('Album đã được cập nhật!', 'success');

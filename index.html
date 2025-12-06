@@ -298,6 +298,42 @@
             color: #ff69b4;
             text-decoration: none;
         }
+
+        /* Pagination styles */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+
+        .pagination button {
+            background: linear-gradient(45deg, #ff69b4, #ff1493);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            opacity: 0.8;
+        }
+
+        .pagination button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .pagination .page-info {
+            color: #cccccc;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -310,7 +346,7 @@
 
             <img src="logo.jpg" alt="FG Logo" style="max-width: 80px; height: auto; margin-right: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
             <h1 style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate; position: relative; z-index: 2;">Fresh Girl</h1>
-            <button id="loginBtn" style="background: linear-gradient(45deg, #ff69b4, #ff1493); color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-left: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">Đăng nhập</button>
+            <button id="loginBtn" style="background: linear-gradient(45deg, #ff69b4, #ff1493); color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; margin-left: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">Login</button>
 
             <!-- Enhanced Sparkle effects -->
             <div style="position: absolute; top: -8px; right: -8px; width: 12px; height: 12px; background: #ff69b4; border-radius: 50%; animation: sparkle 2s ease-in-out infinite; box-shadow: 0 0 10px #ff69b4;"></div>
@@ -321,7 +357,7 @@
             <div style="position: absolute; top: 20%; left: -10px; width: 7px; height: 7px; background: #dc143c; border-radius: 50%; animation: sparkle 2.8s ease-in-out infinite; box-shadow: 0 0 5px #dc143c;"></div>
         </div>
         <div style="text-align: center; margin-bottom: 30px; margin-top: 80px; position: relative;">
-            <p style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">✨ Click vào bất kỳ album nào để xem tất cả hình ảnh ✨</p>
+            <p style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">✨ Tiktok: @fresh-girl-vn.surge.sh ✨</p>
             <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
         </div>
 
@@ -335,11 +371,11 @@
         <div id="loginModal" class="modal" style="display: none;">
             <div class="modal-content">
                 <span class="close" onclick="closeLoginModal()">&times;</span>
-                <h2>Đăng nhập Admin</h2>
+                <h2>Admin Login</h2>
                 <form id="loginForm">
-                    <input type="email" id="email" placeholder="Email" required style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #ffffff;">
-                    <input type="password" id="password" placeholder="Mật khẩu" required style="width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #ffffff;">
-                    <button type="submit" style="width: 100%; padding: 10px; background: linear-gradient(45deg, #ff69b4, #ff1493); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Đăng nhập</button>
+                    <input type="email" id="email" placeholder="Email" required style="width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #ffffff;">
+                    <input type="password" id="password" placeholder="Password" required style="width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #ffffff;">
+                    <button type="submit" style="width: 70%; padding: 10px; background: linear-gradient(45deg, #ff69b4, #ff1493); color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 15px; display: block; margin-left: auto; margin-right: auto;">Login</button>
                 </form>
             </div>
         </div>
@@ -351,17 +387,13 @@
             </div>
         </div>
 
-        <!-- Footer -->
-        <footer style="width: 100%; text-align: center; margin-top: 50px; margin-bottom: 30px; padding: 20px; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%); border-top: 3px solid transparent; background: linear-gradient(135deg, #121212 0%, #1a1a1a 50%, #0a0a0a 100%) padding-box, linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4) border-box; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);">
-            <div style="display: inline-block; padding: 15px 25px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">
-                <p style="color: #cccccc; margin: 0; font-size: 1em; line-height: 1.4;">
-                    Thông tin liên hệ:<br>
-                    Tiktok: @fresh-girl-vn.surge.sh<br>
-                    X: Updating...
-                </p>
-            </div>
-            <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
-        </footer>
+        <!-- Pagination controls -->
+        <div id="paginationContainer" class="pagination" style="display: none;">
+            <button id="prevBtn" onclick="changePage(-1)">Previous</button>
+            <span id="pageInfo" class="page-info">Page 1 of 1</span>
+            <button id="nextBtn" onclick="changePage(1)">Next</button>
+        </div>
+
     </div>
 
     <script>
@@ -384,6 +416,11 @@
         const notification = document.getElementById('notification');
         const notificationMessage = document.getElementById('notificationMessage');
 
+        // Pagination variables
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let allTitlesData = [];
+
         // Function to load and display titles
         async function loadTitles() {
             const titlesContainer = document.getElementById('titlesContainer');
@@ -393,6 +430,7 @@
 
                 if (titlesSnapshot.empty) {
                     titlesContainer.innerHTML = '<p class="loading-text">No titles found.</p>';
+                    document.getElementById('paginationContainer').style.display = 'none';
                     return;
                 }
 
@@ -421,8 +459,8 @@
                     imagesSnapshot.docs.forEach((doc) => {
                         const imageData = doc.data();
                         if (imageData.type === 'video' ||
-                           (imageData.url && imageData.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) ||
-                           (imageData.fileName && imageData.fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i))) {
+                            (imageData.url && imageData.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) ||
+                            (imageData.fileName && imageData.fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i))) {
                             videoCount++;
                         } else {
                             imageCount++;
@@ -453,51 +491,105 @@
                 });
 
                 // Wait for all titles to be processed
-                const titleDataArray = await Promise.all(titlePromises);
+                allTitlesData = await Promise.all(titlePromises);
 
-                // Clear loading and display all titles at once
-                titlesContainer.innerHTML = '';
-
-                for (const { titleName, imageCount, videoCount, totalCount, coverImageUrl } of titleDataArray) {
-                    // Create title card
-                    const titleCard = document.createElement('a');
-                    titleCard.href = `view.html?title=${encodeURIComponent(titleName)}`;
-                    titleCard.className = 'title-card';
-
-                    // Add cover image if available
-                    if (coverImageUrl) {
-                        const coverImg = document.createElement('img');
-                        coverImg.src = coverImageUrl;
-                        coverImg.alt = `${titleName} cover image`;
-                        titleCard.appendChild(coverImg);
-                    }
-
-                    const titleElement = document.createElement('h3');
-                    titleElement.textContent = titleName;
-
-                    const countElement = document.createElement('p');
-                    let countText = '';
-                    if (imageCount > 0 && videoCount > 0) {
-                        countText = `${imageCount} ảnh, ${videoCount} video`;
-                    } else if (imageCount > 0) {
-                        countText = `${imageCount} ảnh`;
-                    } else if (videoCount > 0) {
-                        countText = `${videoCount} video`;
-                    } else {
-                        countText = '0 files';
-                    }
-                    countElement.textContent = countText;
-
-                    titleCard.appendChild(titleElement);
-                    titleCard.appendChild(countElement);
-                    titlesContainer.appendChild(titleCard);
-                }
+                // Display current page
+                displayCurrentPage();
 
             } catch (error) {
                 console.error('Error loading titles:', error);
                 titlesContainer.innerHTML = '<p class="loading-text">Error loading titles.</p>';
                 showNotification('Error loading titles.', 'error');
             }
+        }
+
+        // Function to display current page items
+        function displayCurrentPage() {
+            const titlesContainer = document.getElementById('titlesContainer');
+            const paginationContainer = document.getElementById('paginationContainer');
+
+            if (allTitlesData.length === 0) {
+                titlesContainer.innerHTML = '<p class="loading-text">No titles found.</p>';
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            // Calculate pagination
+            const totalPages = Math.ceil(allTitlesData.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPageData = allTitlesData.slice(startIndex, endIndex);
+
+            // Clear loading and display current page titles
+            titlesContainer.innerHTML = '';
+
+            for (const { titleName, imageCount, videoCount, totalCount, coverImageUrl } of currentPageData) {
+                // Create title card
+                const titleCard = document.createElement('a');
+                titleCard.href = `view.html?title=${encodeURIComponent(titleName)}`;
+                titleCard.className = 'title-card';
+
+                // Add cover image if available
+                if (coverImageUrl) {
+                    const coverImg = document.createElement('img');
+                    coverImg.src = coverImageUrl;
+                    coverImg.alt = `${titleName} cover image`;
+                    titleCard.appendChild(coverImg);
+                }
+
+                const titleElement = document.createElement('h3');
+                titleElement.textContent = titleName;
+
+                const countElement = document.createElement('p');
+                let countText = '';
+                if (imageCount > 0 && videoCount > 0) {
+                    countText = `${imageCount} ảnh, ${videoCount} video`;
+                } else if (imageCount > 0) {
+                    countText = `${imageCount} ảnh`;
+                } else if (videoCount > 0) {
+                    countText = `${videoCount} video`;
+                } else {
+                    countText = '0 files';
+                }
+                countElement.textContent = countText;
+
+                titleCard.appendChild(titleElement);
+                titleCard.appendChild(countElement);
+                titlesContainer.appendChild(titleCard);
+            }
+
+            // Update pagination controls
+            updatePaginationControls(totalPages);
+        }
+
+        // Function to update pagination controls
+        function updatePaginationControls(totalPages) {
+            const paginationContainer = document.getElementById('paginationContainer');
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            // Update page info
+            pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+            // Enable/disable buttons
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            // Show pagination if more than one page
+            paginationContainer.style.display = totalPages > 1 ? 'flex' : 'none';
+        }
+
+        // Function to change page
+        function changePage(direction) {
+            const totalPages = Math.ceil(allTitlesData.length / itemsPerPage);
+            currentPage += direction;
+
+            // Ensure page bounds
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+
+            displayCurrentPage();
         }
 
         // Notification functions
@@ -533,11 +625,16 @@
 
             try {
                 await auth.signInWithEmailAndPassword(email, password);
-                showNotification('Đăng nhập thành công!', 'success');
                 closeLoginModal();
                 window.location.href = 'admin.html';
             } catch (error) {
-                showNotification('Đăng nhập thất bại: ' + error.message, 'error');
+                let errorMessage = 'Login failed';
+                if (error.message && error.message.includes('INVALID_LOGIN_CREDENTIALS')) {
+                    errorMessage = 'Access denied. You do not have permission to access this system. Please contact your administrator.';
+                } else {
+                    errorMessage = 'Login failed: ' + error.message;
+                }
+                alert(errorMessage);
             }
         });
 
