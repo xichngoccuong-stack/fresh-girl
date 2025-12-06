@@ -358,6 +358,27 @@
         </div>
     </div>
 
+    <!-- Move Image Modal -->
+    <div id="moveModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeMoveModal()">&times;</span>
+            <h2>Chuyển Ảnh Sang Album Khác</h2>
+            <div id="moveImagePreview" style="text-align: center; margin-bottom: 20px;">
+                <img id="moveImageThumbnail" src="" alt="Image to move" style="max-width: 200px; max-height: 200px; border-radius: 8px; border: 2px solid #ff69b4;">
+            </div>
+            <div class="form-group">
+                <label for="targetAlbumSelect">Chọn Album Mục Tiêu:</label>
+                <select id="targetAlbumSelect" style="width: 100%; padding: 10px; border: 1px solid #555; border-radius: 5px; background: #2a2a2a; color: #ffffff;">
+                    <option value="">Đang tải danh sách albums...</option>
+                </select>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn" onclick="performMove()" style="margin-right: 10px;">Chuyển Ảnh</button>
+                <button class="btn" onclick="closeMoveModal()" style="background: #666;">Hủy</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -721,12 +742,14 @@
                         imageElement.innerHTML = `
                             <video src="${image.url}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; ${isCover ? 'border: 3px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);' : ''}" controls muted></video>
                             <button class="remove-btn" onclick="removeImage('${doc.id}')" style="top: 5px; right: 5px;">&times;</button>
+                            <button class="move-btn" onclick="moveImage('${doc.id}', '${image.url}')" style="position: absolute; top: 5px; left: 5px; background: linear-gradient(45deg, #2196F3, #21CBF3); color: white; border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">📦 Chuyển</button>
                             <button class="cover-btn" onclick="setAsCover('${doc.id}', '${titleId}')" style="position: absolute; bottom: 5px; left: 5px; ${coverButtonStyle} border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">${coverButtonText}</button>
                         `;
                     } else {
                         imageElement.innerHTML = `
                             <img src="${image.url}" alt="Image" style="${isCover ? 'border: 3px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);' : ''}">
                             <button class="remove-btn" onclick="removeImage('${doc.id}')" style="top: 5px; right: 5px;">&times;</button>
+                            <button class="move-btn" onclick="moveImage('${doc.id}', '${image.url}')" style="position: absolute; top: 5px; left: 5px; background: linear-gradient(45deg, #2196F3, #21CBF3); color: white; border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">📦 Chuyển</button>
                             <button class="cover-btn" onclick="setAsCover('${doc.id}', '${titleId}')" style="position: absolute; bottom: 5px; left: 5px; ${coverButtonStyle} border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">${coverButtonText}</button>
                         `;
                     }
@@ -973,6 +996,97 @@
                     console.error('Error removing image:', error);
                     alert('Lỗi khi xóa hình ảnh.');
                 }
+            }
+        }
+
+        // Move image variables
+        let imageToMove = null;
+
+        // Move image function
+        function moveImage(imageId, imageUrl) {
+            imageToMove = { id: imageId, url: imageUrl };
+            document.getElementById('moveImageThumbnail').src = imageUrl;
+            document.getElementById('moveModal').style.display = 'block';
+            loadAlbumsForMove();
+        }
+
+        // Close move modal
+        function closeMoveModal() {
+            document.getElementById('moveModal').style.display = 'none';
+            imageToMove = null;
+            document.getElementById('targetAlbumSelect').innerHTML = '<option value="">Đang tải danh sách albums...</option>';
+        }
+
+        // Load albums for move selection
+        async function loadAlbumsForMove() {
+            const select = document.getElementById('targetAlbumSelect');
+            select.innerHTML = '<option value="">Đang tải...</option>';
+
+            try {
+                const titlesSnapshot = await db.collection('titles').orderBy('createdAt', 'desc').get();
+                select.innerHTML = '<option value="">Chọn album mục tiêu...</option>';
+
+                for (const doc of titlesSnapshot.docs) {
+                    // Skip the current album
+                    if (doc.id === currentTitleId) continue;
+
+                    const title = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = title.name;
+                    select.appendChild(option);
+                }
+
+                if (titlesSnapshot.docs.length <= 1) {
+                    select.innerHTML = '<option value="">Không có album khác để chuyển</option>';
+                }
+            } catch (error) {
+                console.error('Error loading albums for move:', error);
+                select.innerHTML = '<option value="">Lỗi khi tải danh sách albums</option>';
+            }
+        }
+
+        // Perform the move operation
+        async function performMove() {
+            if (!imageToMove) return;
+
+            const targetAlbumId = document.getElementById('targetAlbumSelect').value;
+            if (!targetAlbumId) {
+                showNotification('Vui lòng chọn album mục tiêu!', 'error');
+                return;
+            }
+
+            try {
+                const batch = db.batch();
+
+                // Update the image's titleId
+                batch.update(db.collection('images').doc(imageToMove.id), {
+                    titleId: targetAlbumId
+                });
+
+                // Check if this image is the current cover of the original album
+                const coverSnapshot = await db.collection('album_covers')
+                    .where('imageId', '==', imageToMove.id)
+                    .where('albumId', '==', currentTitleId)
+                    .get();
+
+                // If it's the cover, remove it from covers collection
+                if (!coverSnapshot.empty) {
+                    batch.delete(coverSnapshot.docs[0].ref);
+                }
+
+                // Commit the batch
+                await batch.commit();
+
+                // Close modal and reload images
+                closeMoveModal();
+                loadImages(currentTitleId);
+
+                showNotification('Hình ảnh đã được chuyển thành công!', 'success');
+
+            } catch (error) {
+                console.error('Error moving image:', error);
+                showNotification('Lỗi khi chuyển hình ảnh.', 'error');
             }
         }
     </script>

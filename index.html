@@ -356,9 +356,20 @@
             <div style="position: absolute; bottom: -6px; right: 30%; width: 5px; height: 5px; background: #ff1493; border-radius: 50%; animation: sparkle 2.2s ease-in-out infinite; box-shadow: 0 0 3px #ff1493;"></div>
             <div style="position: absolute; top: 20%; left: -10px; width: 7px; height: 7px; background: #dc143c; border-radius: 50%; animation: sparkle 2.8s ease-in-out infinite; box-shadow: 0 0 5px #dc143c;"></div>
         </div>
+        <!-- Combined Search Bar and Tiktok -->
         <div style="text-align: center; margin-bottom: 30px; margin-top: 80px; position: relative;">
-            <p style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">✨ Tiktok: @fresh-girl-vn.surge.sh ✨</p>
-            <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap;">
+                <div style="position: relative;">
+                    <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm album..." style="width: 300px; padding: 12px 45px 12px 15px; border: 2px solid rgba(255, 105, 180, 0.3); border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); color: #ffffff; font-size: 16px; outline: none; transition: all 0.3s ease;">
+                    <button id="clearSearchBtn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #ff69b4; font-size: 18px; cursor: pointer; display: none;">✕</button>
+                    <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+                </div>
+
+                <div style="position: relative;">
+                    <p style="color: #cccccc; font-size: 1.1em; margin: 0; display: inline-block; padding: 10px 20px; border-radius: 25px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); position: relative; z-index: 1;">✨ Tiktok: @fresh-girl-vn.surge.sh ✨</p>
+                    <div style="position: absolute; top: -2px; left: -2px; right: -2px; bottom: -2px; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); border-radius: 25px; z-index: -1; opacity: 0.3; animation: gradientShift 4s ease-in-out infinite;"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Notification system -->
@@ -420,10 +431,20 @@
         let currentPage = 1;
         const itemsPerPage = 20;
         let allTitlesData = [];
+        let filteredTitlesData = [];
+        let currentSearchTerm = '';
 
         // Function to load and display titles
         async function loadTitles() {
             const titlesContainer = document.getElementById('titlesContainer');
+
+            // Show loading immediately
+            titlesContainer.innerHTML = `
+                <div class="loading-container">
+                    <div class="pink-spinner"></div>
+                    <p>Đang tải tất cả albums...</p>
+                </div>
+            `;
 
             try {
                 const titlesSnapshot = await db.collection('titles').orderBy('createdAt', 'desc').get();
@@ -433,14 +454,6 @@
                     document.getElementById('paginationContainer').style.display = 'none';
                     return;
                 }
-
-                // Clear container and show loading spinner
-                titlesContainer.innerHTML = `
-                    <div class="loading-container">
-                        <div class="pink-spinner"></div>
-                        <p>Loading albums...</p>
-                    </div>
-                `;
 
                 // Process all titles and collect their data
                 const titlePromises = titlesSnapshot.docs.map(async (titleDoc) => {
@@ -493,7 +506,10 @@
                 // Wait for all titles to be processed
                 allTitlesData = await Promise.all(titlePromises);
 
-                // Display current page
+                // Initialize filtered data with all data
+                filteredTitlesData = [...allTitlesData];
+
+                // Display current page immediately
                 displayCurrentPage();
 
             } catch (error) {
@@ -503,10 +519,29 @@
             }
         }
 
+        // Function to filter titles based on search term
+        function filterTitles() {
+            if (!currentSearchTerm.trim()) {
+                filteredTitlesData = allTitlesData;
+            } else {
+                filteredTitlesData = allTitlesData.filter(title =>
+                    title.titleName.toLowerCase().includes(currentSearchTerm.toLowerCase())
+                );
+            }
+            currentPage = 1; // Reset to first page when filtering
+            displayCurrentPage();
+        }
+
         // Function to display current page items
         function displayCurrentPage() {
             const titlesContainer = document.getElementById('titlesContainer');
             const paginationContainer = document.getElementById('paginationContainer');
+
+            if (filteredTitlesData.length === 0 && allTitlesData.length > 0) {
+                titlesContainer.innerHTML = '<p class="loading-text">Không tìm thấy album nào phù hợp với từ khóa tìm kiếm.</p>';
+                paginationContainer.style.display = 'none';
+                return;
+            }
 
             if (allTitlesData.length === 0) {
                 titlesContainer.innerHTML = '<p class="loading-text">No titles found.</p>';
@@ -515,10 +550,10 @@
             }
 
             // Calculate pagination
-            const totalPages = Math.ceil(allTitlesData.length / itemsPerPage);
+            const totalPages = Math.ceil(filteredTitlesData.length / itemsPerPage);
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
-            const currentPageData = allTitlesData.slice(startIndex, endIndex);
+            const currentPageData = filteredTitlesData.slice(startIndex, endIndex);
 
             // Clear loading and display current page titles
             titlesContainer.innerHTML = '';
@@ -644,6 +679,21 @@
                 // User is signed in, redirect to admin
                 window.location.href = 'admin.html';
             }
+        });
+
+        // Search event listeners
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            currentSearchTerm = e.target.value.trim();
+            const clearBtn = document.getElementById('clearSearchBtn');
+            clearBtn.style.display = currentSearchTerm ? 'block' : 'none';
+            filterTitles();
+        });
+
+        document.getElementById('clearSearchBtn').addEventListener('click', function() {
+            document.getElementById('searchInput').value = '';
+            currentSearchTerm = '';
+            this.style.display = 'none';
+            filterTitles();
         });
 
         // Load titles on page load
