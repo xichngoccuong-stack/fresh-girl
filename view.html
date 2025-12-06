@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gái xinh Việt Nam - Album</title>
+    <title>FG Media</title>
     <link rel="icon" type="image/x-icon" href="tabLogo.jpg">
     <link rel="stylesheet" href="view-styles.css">
     <!-- Firebase SDK v8 (for compatibility with static HTML) -->
@@ -136,7 +136,7 @@
 
                 <div style="display: flex; align-items: center; justify-content: center;">
                     <img src="logo.jpg" alt="Logo" style="height: 85px; width: auto; margin-right: 15px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); position: relative; z-index: 2;">
-                    <h1 id="titleHeading" style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate; position: relative; z-index: 2;">Gái xinh Việt Nam</h1>
+                    <h1 id="titleHeading" style="color: #ffffff; margin: 10px 0; background: linear-gradient(45deg, #ff69b4, #ff1493, #dc143c, #ff69b4); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5em; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); animation: gradientShift 3s ease-in-out infinite, glow 2s ease-in-out infinite alternate; position: relative; z-index: 2;">Fresh Girl</h1>
                 </div>
 
                 <!-- Enhanced Sparkle effects -->
@@ -298,32 +298,9 @@
                     return;
                 }
 
-                // Count images and videos
-                let imageCount = 0;
-                let videoCount = 0;
-
-                imagesSnapshot.docs.forEach((doc) => {
-                    const imageData = doc.data();
-                    if (imageData.type === 'video') {
-                        videoCount++;
-                    } else {
-                        imageCount++;
-                    }
-                });
-
-                // Update album subtitle with counts
+                // Update album subtitle without counts
                 const albumSubtitle = document.getElementById('albumSubtitle');
-                let countText = '';
-                if (imageCount > 0 && videoCount > 0) {
-                    countText = `${imageCount} ảnh, ${videoCount} video`;
-                } else if (imageCount > 0) {
-                    countText = `${imageCount} ảnh`;
-                } else if (videoCount > 0) {
-                    countText = `${videoCount} video`;
-                } else {
-                    countText = '0 files';
-                }
-                albumSubtitle.textContent = `${titleName} (${countText})`;
+                albumSubtitle.textContent = titleName;
 
                 // Store cover image URL for potential future use
                 currentCoverImageUrl = coverImageUrl || null;
