@@ -324,10 +324,10 @@
     <div id="imagesModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeImagesModal()">&times;</span>
-            <h2 id="imagesModalTitle">Quản Lý Hình Ảnh</h2>
-            <input type="file" id="imageUpload" multiple accept="image/*" style="margin-bottom: 10px;">
+            <h2 id="imagesModalTitle">Quản Lý Media</h2>
+            <input type="file" id="imageUpload" multiple accept="image/*,video/*" style="margin-bottom: 10px;">
             <div id="selectedImagesPreview" style="display: none; margin-bottom: 10px;">
-                <h3>Ảnh đã chọn:</h3>
+                <h3>Media đã chọn:</h3>
                 <div id="selectedImagesList" class="image-list"></div>
                 <button class="btn" onclick="uploadImages()" style="margin-top: 10px;">Tải Lên Các Ảnh Đã Chọn</button>
                 <div id="uploadSpinner" style="display: none; text-align: center; margin-top: 10px;">
@@ -345,7 +345,7 @@
     <div id="loadingOverlay" class="loading-overlay hidden">
         <div class="loading-content">
             <div class="pink-spinner"></div>
-            <h3>Đang tải lên hình ảnh...</h3>
+            <h3>Đang tải lên media...</h3>
             <p style="color: #cccccc; margin-top: 10px;">Vui lòng đợi, không đóng trang này</p>
         </div>
     </div>
@@ -372,223 +372,11 @@
 
         let currentTitleId = null;
 
-        // Debug function for Cloudinary delete testing
-        function debugCloudinaryDelete() {
-
-            // Test with sample data
-            const testPublicId = 'urap5hajxbf2bv09uwz8';
-            const testTimestamp = Math.floor(Date.now() / 1000);
 
 
-            // Generate signature
-            const params = { public_id: testPublicId, timestamp: testTimestamp };
-            const sortedKeys = Object.keys(params).sort();
-            const stringToSign = sortedKeys.map(key => `${key}=${params[key]}`).join('&');
 
 
-            // Calculate signature
-            generateCloudinarySignature(params, CLOUDINARY_API_SECRET).then(signature => {
 
-
-                // Test the actual API call
-                deleteFromCloudinary(testPublicId).then(result => {
-                }).catch(error => {
-                    console.error('API Test Error:', error);
-                });
-            }).catch(error => {
-                console.error('Signature generation error:', error);
-            });
-        }
-
-        // Cloudinary signed request helper - FINAL VERSION
-        async function generateCloudinarySignature(params, secret) {
-
-            // Sort parameters alphabetically (Cloudinary requirement)
-            const sortedKeys = Object.keys(params).sort();
-            const sortedParams = sortedKeys.map(key => `${key}=${params[key]}`).join('&');
-
-
-            try {
-                // Use Web Crypto API for proper HMAC-SHA1
-                const crypto = window.crypto || window.msCrypto;
-                const encoder = new TextEncoder();
-
-                // Convert secret and message to bytes
-                const keyData = encoder.encode(secret);
-                const messageData = encoder.encode(sortedParams);
-
-                // Import key for HMAC
-                const key = await crypto.subtle.importKey(
-                    'raw',
-                    keyData,
-                    { name: 'HMAC', hash: 'SHA-1' },
-                    false,
-                    ['sign']
-                );
-
-
-                // Generate signature
-                const signature = await crypto.subtle.sign('HMAC', key, messageData);
-
-                // Convert to hex string (lowercase)
-                const hashArray = Array.from(new Uint8Array(signature));
-                const signatureHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-                return signatureHex;
-
-            } catch (error) {
-                console.error('❌ Web Crypto API failed:', error);
-
-                // Fallback implementation using a more reliable method
-                try {
-                    const signatureHex = manualHmacSha1(sortedParams, secret);
-                    return signatureHex;
-                } catch (fallbackError) {
-                    console.error('❌ Fallback also failed:', fallbackError);
-                    throw fallbackError;
-                }
-            }
-        }
-
-        // Manual HMAC-SHA1 implementation as fallback
-        function manualHmacSha1(message, secret) {
-            // This is a simplified but more reliable implementation
-            // Based on the standard HMAC-SHA1 algorithm
-
-            // Step 1: Prepare the key
-            let key = secret;
-            if (key.length > 64) {
-                // If key is longer than block size, hash it
-                key = sha1(key);
-            }
-            if (key.length < 64) {
-                // Pad key to block size
-                key = key.padEnd(64, '\0');
-            }
-
-            // Step 2: Create inner and outer padding
-            const ipad = String.fromCharCode(...new Array(64).fill(0x36));
-            const opad = String.fromCharCode(...new Array(64).fill(0x5c));
-
-            const innerKey = xorStrings(key, ipad);
-            const outerKey = xorStrings(key, opad);
-
-            // Step 3: Compute inner hash
-            const innerHash = sha1(innerKey + message);
-
-            // Step 4: Compute outer hash
-            const finalHash = sha1(outerKey + innerHash);
-
-            return finalHash;
-        }
-
-        // Simple SHA-1 implementation
-        function sha1(str) {
-            // Convert string to bytes
-            const bytes = new TextEncoder().encode(str);
-
-            // SHA-1 constants
-            const h0 = 0x67452301;
-            const h1 = 0xEFCDAB89;
-            const h2 = 0x98BADCFE;
-            const h3 = 0x10325476;
-            const h4 = 0xC3D2E1F0;
-
-            let h = [h0, h1, h2, h3, h4];
-
-            // Pre-processing: add padding
-            const msgLen = bytes.length;
-            const paddedLen = Math.floor((msgLen + 8) / 64 + 1) * 64;
-            const padded = new Uint8Array(paddedLen);
-            padded.set(bytes);
-            padded[msgLen] = 0x80;
-
-            // Append original length as 64-bit big-endian
-            const lengthBits = msgLen * 8;
-            for (let i = 0; i < 8; i++) {
-                padded[paddedLen - 8 + i] = (lengthBits >>> (56 - i * 8)) & 0xFF;
-            }
-
-            // Process 512-bit chunks
-            for (let chunkStart = 0; chunkStart < paddedLen; chunkStart += 64) {
-                const w = new Array(80);
-
-                // Break chunk into sixteen 32-bit big-endian words
-                for (let i = 0; i < 16; i++) {
-                    w[i] = (padded[chunkStart + i * 4] << 24) |
-                           (padded[chunkStart + i * 4 + 1] << 16) |
-                           (padded[chunkStart + i * 4 + 2] << 8) |
-                           padded[chunkStart + i * 4 + 3];
-                }
-
-                // Extend the sixteen 32-bit words into eighty 32-bit words
-                for (let i = 16; i < 80; i++) {
-                    w[i] = leftRotate(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
-                }
-
-                let a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
-
-                // Main loop
-                for (let i = 0; i < 80; i++) {
-                    let f, k;
-                    if (i < 20) {
-                        f = (b & c) | ((~b) & d);
-                        k = 0x5A827999;
-                    } else if (i < 40) {
-                        f = b ^ c ^ d;
-                        k = 0x6ED9EBA1;
-                    } else if (i < 60) {
-                        f = (b & c) | (b & d) | (c & d);
-                        k = 0x8F1BBCDC;
-                    } else {
-                        f = b ^ c ^ d;
-                        k = 0xCA62C1D6;
-                    }
-
-                    const temp = (leftRotate(a, 5) + f + e + k + w[i]) & 0xFFFFFFFF;
-                    e = d;
-                    d = c;
-                    c = leftRotate(b, 30);
-                    b = a;
-                    a = temp;
-                }
-
-                // Add this chunk's hash to result so far
-                h[0] = (h[0] + a) & 0xFFFFFFFF;
-                h[1] = (h[1] + b) & 0xFFFFFFFF;
-                h[2] = (h[2] + c) & 0xFFFFFFFF;
-                h[3] = (h[3] + d) & 0xFFFFFFFF;
-                h[4] = (h[4] + e) & 0xFFFFFFFF;
-            }
-
-            // Produce the final hash value as a 160-bit number (little-endian)
-            const result = new Uint8Array(20);
-            for (let i = 0; i < 5; i++) {
-                result[i * 4] = (h[i] >>> 24) & 0xFF;
-                result[i * 4 + 1] = (h[i] >>> 16) & 0xFF;
-                result[i * 4 + 2] = (h[i] >>> 8) & 0xFF;
-                result[i * 4 + 3] = h[i] & 0xFF;
-            }
-
-            // Convert to hex string
-            return Array.from(result).map(b => b.toString(16).padStart(2, '0')).join('');
-        }
-
-        // Helper function for left rotation
-        function leftRotate(value, amount) {
-            return ((value << amount) | (value >>> (32 - amount))) & 0xFFFFFFFF;
-        }
-
-        // Helper function for XOR of strings
-        function xorStrings(str1, str2) {
-            let result = '';
-            for (let i = 0; i < str1.length; i++) {
-                result += String.fromCharCode(str1.charCodeAt(i) ^ str2.charCodeAt(i));
-            }
-            return result;
-        }
-
-        // Cloudinary deletion function removed - no longer needed
 
         // Notification elements
         const notification = document.getElementById('notification');
@@ -694,7 +482,7 @@
                 await db.collection('titles').doc(id).update({ name });
                 closeEditModal();
                 loadTitles();
-                alert('Album đã được cập nhật!');
+                showNotification('Album đã được cập nhật!', 'success');
             } catch (error) {
                 console.error('Error updating title:', error);
                 alert('Lỗi khi cập nhật album.');
@@ -817,14 +605,33 @@
             selectedFiles.forEach((file, index) => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const imageDiv = document.createElement('div');
-                    imageDiv.className = 'image-item';
-                    imageDiv.innerHTML = `
-                        <img src="${e.target.result}" alt="${file.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px;">
-                        <div style="text-align: center; margin-top: 5px; font-size: 12px; color: #cccccc;">${file.name}</div>
-                        <button class="remove-btn" onclick="removeSelectedImage(${index})" style="position: absolute; top: 5px; right: 5px; background: #dc143c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px;">&times;</button>
-                    `;
-                    previewList.appendChild(imageDiv);
+                    const mediaDiv = document.createElement('div');
+                    mediaDiv.className = 'image-item';
+                    const isVideo = file.type.startsWith('video/');
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                    const maxSizeMB = isVideo ? 100 : 10; // 100MB for videos, 10MB for images
+                    const isOversized = file.size > (maxSizeMB * 1024 * 1024);
+
+                    // Add warning styling for oversized files
+                    const sizeColor = isOversized ? '#ff6b6b' : '#cccccc';
+                    const sizeText = isOversized ? `${fileSizeMB}MB ⚠️ Quá lớn!` : `${fileSizeMB}MB`;
+
+                    if (isVideo) {
+                        mediaDiv.innerHTML = `
+                            <video src="${e.target.result}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; ${isOversized ? 'border: 2px solid #ff6b6b;' : ''}" controls muted></video>
+                            <div style="text-align: center; margin-top: 5px; font-size: 12px; color: ${sizeColor};">${file.name}</div>
+                            <div style="text-align: center; font-size: 10px; color: ${sizeColor};">${sizeText}</div>
+                            <button class="remove-btn" onclick="removeSelectedImage(${index})" style="position: absolute; top: 5px; right: 5px; background: #dc143c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px;">&times;</button>
+                        `;
+                    } else {
+                        mediaDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="${file.name}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; ${isOversized ? 'border: 2px solid #ff6b6b;' : ''}">
+                            <div style="text-align: center; margin-top: 5px; font-size: 12px; color: ${sizeColor};">${file.name}</div>
+                            <div style="text-align: center; font-size: 10px; color: ${sizeColor};">${sizeText}</div>
+                            <button class="remove-btn" onclick="removeSelectedImage(${index})" style="position: absolute; top: 5px; right: 5px; background: #dc143c; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px;">&times;</button>
+                        `;
+                    }
+                    previewList.appendChild(mediaDiv);
                 };
                 reader.readAsDataURL(file);
             });
@@ -883,11 +690,22 @@
                         'background: linear-gradient(45deg, #ffd700, #ffed4e); color: #000; border: 2px solid #ff6b35;' :
                         'background: linear-gradient(45deg, #4CAF50, #45a049); color: white;';
 
-                    imageElement.innerHTML = `
-                        <img src="${image.url}" alt="Image" style="${isCover ? 'border: 3px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);' : ''}">
-                        <button class="remove-btn" onclick="removeImage('${doc.id}')" style="top: 5px; right: 5px;">&times;</button>
-                        <button class="cover-btn" onclick="setAsCover('${doc.id}', '${titleId}')" style="position: absolute; bottom: 5px; left: 5px; ${coverButtonStyle} border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">${coverButtonText}</button>
-                    `;
+                    // Check if it's a video by looking at the URL or file extension
+                    const isVideo = image.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i) || image.url.includes('video');
+
+                    if (isVideo) {
+                        imageElement.innerHTML = `
+                            <video src="${image.url}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 5px; ${isCover ? 'border: 3px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);' : ''}" controls muted></video>
+                            <button class="remove-btn" onclick="removeImage('${doc.id}')" style="top: 5px; right: 5px;">&times;</button>
+                            <button class="cover-btn" onclick="setAsCover('${doc.id}', '${titleId}')" style="position: absolute; bottom: 5px; left: 5px; ${coverButtonStyle} border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">${coverButtonText}</button>
+                        `;
+                    } else {
+                        imageElement.innerHTML = `
+                            <img src="${image.url}" alt="Image" style="${isCover ? 'border: 3px solid #ffd700; box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);' : ''}">
+                            <button class="remove-btn" onclick="removeImage('${doc.id}')" style="top: 5px; right: 5px;">&times;</button>
+                            <button class="cover-btn" onclick="setAsCover('${doc.id}', '${titleId}')" style="position: absolute; bottom: 5px; left: 5px; ${coverButtonStyle} border: none; border-radius: 15px; padding: 4px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">${coverButtonText}</button>
+                        `;
+                    }
                     imagesList.appendChild(imageElement);
                 }
 
@@ -944,7 +762,32 @@
         // Upload images to Cloudinary
         async function uploadImages() {
             if (selectedFiles.length === 0) {
-                showNotification('Vui lòng chọn hình ảnh để tải lên.', 'error');
+                showNotification('Vui lòng chọn media để tải lên.', 'error');
+                return;
+            }
+
+            // Check file sizes before upload (Cloudinary limits: images 10MB, videos 100MB)
+            const oversizedFiles = selectedFiles.filter(file => {
+                const isVideo = file.type.startsWith('video/');
+                const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024; // 100MB for videos, 10MB for images
+                return file.size > maxSize;
+            });
+
+            if (oversizedFiles.length > 0) {
+                const fileDetails = oversizedFiles.map(file => {
+                    const isVideo = file.type.startsWith('video/');
+                    const maxSize = isVideo ? 100 : 10;
+                    const actualSize = (file.size / (1024 * 1024)).toFixed(1);
+                    return `${file.name}: ${actualSize}MB (giới hạn ${maxSize}MB cho ${isVideo ? 'video' : 'hình ảnh'})`;
+                }).join('\n');
+                showNotification(`Các file sau vượt quá giới hạn cho phép:\n${fileDetails}\n\nVui lòng nén file hoặc chia nhỏ.`, 'error');
+                return;
+            }
+
+            if (oversizedFiles.length > 0) {
+                const fileNames = oversizedFiles.map(file => file.name).join(', ');
+                const fileSizes = oversizedFiles.map(file => (file.size / (1024 * 1024)).toFixed(1) + 'MB').join(', ');
+                showNotification(`Các file sau vượt quá giới hạn 10MB của Cloudinary:\n${fileNames}\nKích thước: ${fileSizes}\n\nVui lòng nén video hoặc sử dụng dịch vụ khác.`, 'error');
                 return;
             }
 
@@ -965,15 +808,18 @@
 
             for (const file of selectedFiles) {
                 try {
+                    // Detect file type and use appropriate Cloudinary endpoint
+                    const isVideo = file.type.startsWith('video/');
+                    const uploadEndpoint = isVideo ? 'video/upload' : 'image/upload';
 
                     // Tạo FormData cho Cloudinary
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
 
-                    // Upload lên Cloudinary
+                    // Upload lên Cloudinary với endpoint phù hợp
                     const response = await fetch(
-                        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+                        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${uploadEndpoint}`,
                         {
                             method: 'POST',
                             body: formData
@@ -994,13 +840,14 @@
 
                     const imageUrl = data.secure_url;
 
-                    // Lưu URL vào Firestore
-                    const docRef = await db.collection('images').add({
-                        titleId: currentTitleId,
-                        url: imageUrl,
-                        fileName: file.name,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    // Lưu URL vào Firestore với thông tin loại file
+                     const docRef = await db.collection('images').add({
+                         titleId: currentTitleId,
+                         url: imageUrl,
+                         fileName: file.name,
+                         type: isVideo ? 'video' : 'image',
+                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                     });
 
                     successCount++;
 
@@ -1028,9 +875,9 @@
 
             // Show notification
             if (successCount > 0) {
-                showNotification(`Upload hoàn thành! ${successCount} ảnh thành công${errorCount > 0 ? `, ${errorCount} ảnh thất bại` : ''}`, 'success');
+                showNotification(`Upload hoàn thành! ${successCount} media thành công${errorCount > 0 ? `, ${errorCount} media thất bại` : ''}`, 'success');
             } else if (errorCount > 0) {
-                showNotification(`Upload thất bại! ${errorCount} ảnh gặp lỗi.`, 'error');
+                showNotification(`Upload thất bại! ${errorCount} media gặp lỗi.`, 'error');
             }
         }
 
@@ -1097,7 +944,7 @@
                     await batch.commit();
 
                     loadImages(currentTitleId);
-                    alert('Hình ảnh đã được xóa!');
+                    showNotification('Hình ảnh đã được xóa!', 'success');
                 } catch (error) {
                     console.error('Error removing image:', error);
                     alert('Lỗi khi xóa hình ảnh.');

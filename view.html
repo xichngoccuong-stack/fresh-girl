@@ -328,10 +328,26 @@
                 // Store cover image URL for potential future use
                 currentCoverImageUrl = coverImageUrl || null;
 
-                // Sort images by createdAt (newest at end)
+                // Sort images: videos first, then images, within each type by createdAt (newest at end)
                 const sortedImages = imagesSnapshot.docs.sort((a, b) => {
-                    const dateA = a.data().createdAt?.toDate?.() || new Date(a.data().createdAt);
-                    const dateB = b.data().createdAt?.toDate?.() || new Date(b.data().createdAt);
+                    const dataA = a.data();
+                    const dataB = b.data();
+
+                    // Check if files are videos
+                    const isVideoA = dataA.type === 'video' ||
+                                   (dataA.url && dataA.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) ||
+                                   (dataA.fileName && dataA.fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i));
+                    const isVideoB = dataB.type === 'video' ||
+                                   (dataB.url && dataB.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) ||
+                                   (dataB.fileName && dataB.fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i));
+
+                    // Videos come first
+                    if (isVideoA && !isVideoB) return -1;
+                    if (!isVideoA && isVideoB) return 1;
+
+                    // Within same type, sort by createdAt (newest at end)
+                    const dateA = dataA.createdAt?.toDate?.() || new Date(dataA.createdAt);
+                    const dateB = dataB.createdAt?.toDate?.() || new Date(dataB.createdAt);
                     return dateA - dateB; // Oldest first, newest at end
                 });
 
@@ -414,7 +430,10 @@
                 const mediaCard = document.createElement('div');
                 mediaCard.className = 'image-card';
 
-                const isVideo = imgData.type === 'video';
+                // Check for video type in multiple ways
+                const isVideo = imgData.type === 'video' ||
+                               (imgData.url && imgData.url.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i)) ||
+                               (imgData.fileName && imgData.fileName.match(/\.(mp4|avi|mov|wmv|flv|webm|mkv)$/i));
 
                 if (isVideo) {
                     const video = document.createElement('video');
